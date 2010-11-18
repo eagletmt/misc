@@ -110,7 +110,7 @@ liberator.plugins.pixiv = (function() {
     },
     true);  // }}}
 
-  commands.addUserCommand('pixivUserBookmark', '[un]bookmark this user', // {{{
+  commands.addUserCommand(['pixivUserBookmark'], '[un]bookmark this user', // {{{
     function(args) {
       let id = content.document.getElementById('rpc_u_id');
       if (id) {
@@ -133,7 +133,7 @@ liberator.plugins.pixiv = (function() {
       }
     }, { bang: true, argCount: '0' }, true);  // }}}
 
-  commands.addUserCommand('pixivViewBookmark', 'view pixiv bookmark', // {{{
+  commands.addUserCommand(['pixivViewBookmark'], 'view pixiv bookmark', // {{{
     function() {
       if (!/http:\/\/www\.pixiv\.net\/member_illust\.php\?.*illust_id=(\d+)/.test(buffer.URI)) {
         liberator.echo('not pixiv illust page');
@@ -163,7 +163,6 @@ liberator.plugins.pixiv = (function() {
 
         liberator.echo(xml);
       });
-      req.get();
     }, { argCount: '0' }, true);  // }}}
 
   hints.addMode(  // hint mode for tombloo {{{
