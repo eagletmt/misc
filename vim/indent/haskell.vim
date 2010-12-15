@@ -178,7 +178,6 @@ function! haskell#unindent_layout(lnum)"{{{
   let l:lnum = a:lnum
   let l:layout = indent(a:lnum)
   while l:lnum >= 1
-    echom 'indent=' indent(l:lnum) 'for lnum =' l:lnum
     if indent(l:lnum) < l:layout
       return indent(l:lnum)
     endif
