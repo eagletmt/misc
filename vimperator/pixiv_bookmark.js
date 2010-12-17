@@ -90,6 +90,7 @@ liberator.plugins.pixiv = (function() {
       completer: function(context, args) {
         let id = buffer.URI.match(/illust_id=(\d+)/)[1];
         let url = 'http://www.pixiv.net/bookmark_add.php?type=illust&illust_id=' + id;
+        context.compare = void 0;
         if (tags_cache[url]) {
           context.title = ['tag (cached)'];
           context.completions = [[t, ''] for each(t in tags_cache[url]) if (args.indexOf(t) == -1)];
