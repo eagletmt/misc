@@ -75,6 +75,14 @@ liberator.plugins.pixiv = (function() {
     },  // }}}
   };
 
+  function unique(a)
+    a.reduce(function(acc, x) {
+      if (acc.indexOf(x) == -1) {
+        acc.push(x);
+      }
+      return acc;
+    }, []);
+
   commands.addUserCommand(['pixivBookmark'], 'pixiv bookmark',  // {{{
     function(args) {
       if (!buffer.URI.match(/www\.pixiv\.net\/member_illust\.php\?.*illust_id=(\d+)/)) {
@@ -97,8 +105,9 @@ liberator.plugins.pixiv = (function() {
         } else {
           let req = new libly.Request('http://www.pixiv.net/bookmark_add.php?type=illust&illust_id=' + id);
           req.addEventListener('onSuccess', function(res) {
-            let tags = res.getHTMLDocument('//div[@class="bookmark_recommend_tag"]/ul/li/a')
-                        .map(function(a) a.firstChild.nodeValue);
+            let tags = unique(
+              res.getHTMLDocument('//div[@class="bookmark_recommend_tag"]/ul/li/a')
+              .map(function(a) a.firstChild.nodeValue));
 
             tags_cache[url] = tags;
             context.title = ['tag'];
