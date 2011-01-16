@@ -89,9 +89,11 @@
   function available_formats()
     get_flashvars().fmt_list.split(',').map(function(u) u.split('/')[0]);
 
-  function fmt_completer(context, args)
-    [[f, FORMAT_INFO[f].desc + ' (' + FORMAT_INFO[f].ext + ')']
-        for each(f in available_formats())];
+  function fmt_completer(context, args) {
+    context.compare = void 0;
+    return [[f, FORMAT_INFO[f].desc + ' (' + FORMAT_INFO[f].ext + ')']
+      for each(f in available_formats())];
+  }
 })();
 
 // vim: et sw=2 ts=2 sts=2:
