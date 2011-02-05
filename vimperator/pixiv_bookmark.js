@@ -4,51 +4,101 @@ liberator.plugins.pixiv = (function() {
   let $LX = libly.$U.getFirstNodeFromXPath;
   let tags_cache = {};
 
+  function retrieve_tt_from_illust(illust_id, cont) {//{{{
+    let req = new libly.Request('http://www.pixiv.net/member_illust.php?mode=medium&illust_id=' + illust_id);
+    req.addEventListener('onSuccess', function(res) {
+      let tt = res.getHTMLDocument('//input[@name="tt"]');
+      if (!tt) {
+        liberator.echoerr('illust_id=' + illust_id + ' does not exist');
+      } else {
+        cont(tt[0].value);
+      }
+    });
+    req.get();
+  }//}}}
+
+  function retrieve_tt_from_user(user_id, cont) {//{{{
+    let req = new libly.Request('http://www.pixiv.net/member.php?id=' + user_id);
+    req.addEventListener('onSuccess', function(res) {
+      let tt = res.getHTMLDocument('//input[@name="tt"]');
+      if (!tt) {
+        liberator.echoerr('user_id=' + user_id + ' does not exist');
+      } else {
+        cont(tt[0].value);
+      }
+    });
+    req.get();
+  }//}}}
+
   let pixivManager = {
     bookmark_illust: function(id, tags, comment, next) {  // {{{
-      let tt = $LX('//input[@name="tt"]').value;
-      let params = {
-        mode: 'add',
-        tt: tt,
-        id: id,
-        type: 'illust',
-        restrict: '0',
-        tag: tags.map(function(t) encodeURIComponent(t)).join('+'),
-        comment: comment,
-      };
-      let q = [k + '=' + params[k] for (k in params)].join('&');
+      let tt = $LX('//input[@name="tt"]');
+      if (!tt) {
+        retrieve_tt_from_illust(id, cont);
+      } else {
+        cont(tt.value);
+      }
 
-      let req = new libly.Request('http://www.pixiv.net/bookmark_add.php', null, {postBody: q});
-      req.addEventListener('onSuccess', next);
-      req.post();
+      function cont(tt) {
+        let params = {
+          mode: 'add',
+          tt: tt,
+          id: id,
+          type: 'illust',
+          restrict: '0',
+          tag: tags.map(function(t) encodeURIComponent(t)).join('+'),
+          comment: comment,
+        };
+        let q = [k + '=' + params[k] for (k in params)].join('&');
+
+        let req = new libly.Request('http://www.pixiv.net/bookmark_add.php', null, {postBody: q});
+        req.addEventListener('onSuccess', next);
+        req.post();
+      }
     },  /// }}}
     bookmark_user: function(id, next) { // {{{
-      let tt = $LX('//input[@name="tt"]').value;
-      let params = {
-        mode: 'add',
-        tt: tt,
-        user_id: id,
-        type: 'user',
-        restrict: '0',
-      };
-      let q = [k + '=' + params[k] for (k in params)].join('&');
-      let req = new libly.Request('http://www.pixiv.net/bookmark_add.php', null, {postBody: q});
-      req.addEventListener('onSuccess', next);
-      req.post();
+      let tt = $LX('//input[@name="tt"]');
+      if (!tt) {
+        retrieve_tt_from_user(id, cont);
+      } else {
+        cont(tt.value);
+      }
+
+      function cont(tt) {
+        let params = {
+          mode: 'add',
+          tt: tt,
+          user_id: id,
+          type: 'user',
+          restrict: '0',
+        };
+        let q = [k + '=' + params[k] for (k in params)].join('&');
+        let req = new libly.Request('http://www.pixiv.net/bookmark_add.php', null, {postBody: q});
+        req.addEventListener('onSuccess', next);
+        req.post();
+      }
     },  /// }}}
     delete_bookmark_user: function(id, next) {  // {{{
-      let tt = $LX('//input[@name="tt"]').value;
-      let params = {
-        type: 'user',
-        tt: tt,
-        rest: 'show',
-        'id%5B%5D': id,
-        del: '%E3%80%80%E5%A4%96%E3%80%80%E3%81%99%E3%80%80',
-      };
-      let q = [k + '=' + params[k] for (k in params)].join('&');
-      let req = new libly.Request('http://www.pixiv.net/bookmark_setting.php', null, {postBody: q});
-      req.addEventListener('onSuccess', next);
-      req.post();
+      let tt = $LX('//input[@name="tt"]');
+      if (!tt) {
+        retrieve_tt_from_user(id, cont);
+      } else {
+        cont(tt.value);
+      }
+
+      function cont(tt) {
+        let params = {
+          type: 'user',
+          tt: tt,
+          rest: 'show',
+          'id%5B%5D': id,
+          del: '%E3%80%80%E5%A4%96%E3%80%80%E3%81%99%E3%80%80',
+        };
+        let q = [k + '=' + params[k] for (k in params)].join('&');
+        let req = new libly.Request('http://www.pixiv.net/bookmark_setting.php', null, {postBody: q});
+        req.addEventListener('onSuccess', next);
+        req.post();
+      }
     },  // }}}
     get_entries: function(id, next) {  // {{{
       let url = 'http://www.pixiv.net/bookmark_detail.php?illust_id=' + id;
