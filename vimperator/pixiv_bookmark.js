@@ -122,16 +122,10 @@ liberator.plugins.pixiv = (function() {
 
   commands.addUserCommand(['pixivUserBookmark'], '[un]bookmark this user', // {{{
     function(args) {
-      let id = content.document.getElementById('rpc_u_id');
-      if (id) {
-        id = id.textContent;
-      } else {
-        if (/^http:\/\/www\.pixiv\.net\/[\w_]+\.php\?id=(\d+)/.test(buffer.URI)) {
-          id = RegExp.$1;
-        } else {
-          liberator.echoerr('cannot bookmark here!');
-          return;
-        }
+      let id = content.window.wrappedJSObject.pixiv.context.userId;
+      if (!id) {
+        liberator.echoerr('cannot bookmark user here!');
+        return;
       }
       if (args.bang) {
         pixivManager.delete_bookmark_user(id, function() liberator.echo('successfully unbookmarked'));
