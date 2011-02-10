@@ -114,8 +114,9 @@ liberator.plugins.pixiv = (function() {
         obj.entries = $LXs('//div[@class="bookmark_detail_body"]/ul', doc).map(function(ul) {
           let date = ul.querySelector('.days').textContent;
           let img = ul.getElementsByTagName('img').item(0);
-          let tags = $LXs('descendant::a[contains(@href, "tag=")]', ul).map(function(a)
-                        decodeURIComponent(a.href.match(/tag=([^&]+)/)[1]));
+          //let tags = $LXs('descendant::a[contains(@href, "tag=")]', ul).map(function(a)
+          //              decodeURIComponent(a.href.match(/tag=([^&]+)/)[1]));
+          let tags = $LXs('descendant::a', ul).slice(3).map(function(a) a.textContent);
           return { date: date, imgsrc: img.src, user: img.alt, tags: tags };
         });
 
