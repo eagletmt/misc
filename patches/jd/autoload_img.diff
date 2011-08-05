@@ -1,0 +1,86 @@
+diff -ur src.orig/article/articleview.cpp src/article/articleview.cpp
+--- src.orig/article/articleview.cpp	2010-11-04 23:32:39.123342300 +0900
++++ src/article/articleview.cpp	2010-11-05 00:17:48.593342292 +0900
+@@ -13,6 +13,9 @@
+ 
+ #include "dbtree/interface.h"
+ #include "dbtree/articlebase.h"
++#include "dbtree/node.h"
++
++#include "dbimg/imginterface.h"
+ 
+ #include "jdlib/miscutil.h"
+ #include "jdlib/misctime.h"
+@@ -543,6 +546,31 @@
+ 
+     if( m_show_instdialog ) show_instruct_diag();
+ 
++    if( number_new > 0 && m_set_history ){
++        const bool open_imageview = CONFIG::get_use_image_view();
++        const bool mosaic = CONFIG::get_use_mosaic();
++        const LayoutTree* layout_tree = drawarea()->layout_tree();
++        const LAYOUT* layout = layout_tree->get_header_of_res_const( number_load - number_new + 1 );
++        bool first = true;
++        while( layout ){
++          const LAYOUT* next_header = layout->next_header;
++            while( layout ){
++              if(layout->text && layout->type == DBTREE::NODE_LINK && layout->link && DBIMG::get_type_ext( layout->link ) != DBIMG::T_UNKNOWN ){
++                  const std::string url( layout->link );
++                  const int res_number = layout->res_number;
++                  const std::string refurl = DBTREE::url_readcgi( url_article(), res_number, 0 );
++                  if( ! DBIMG::is_cached( url ) ){
++                      DBIMG::download_img_wait( url, refurl, mosaic, first );
++                      first = false;
++                  }
++                  if( open_imageview ) CORE::core_set_command( "open_image", url );
++              }
++              layout = layout->next_layout;
++            }
++            layout = next_header;
++        }
++    }
++
+     if( m_show_closedialog && !number_load && is_old() ){
+ 
+         SKELETON::MsgDiag mdiag( get_parent_win(), "DAT落ちしたためスレッドを取得できませんでした。\n\nタブを閉じますか？",
+diff -ur src.orig/article/drawareabase.h src/article/drawareabase.h
+--- src.orig/article/drawareabase.h	2010-11-04 23:32:39.133342295 +0900
++++ src/article/drawareabase.h	2010-11-05 00:09:19.453342299 +0900
+@@ -299,6 +299,8 @@
+         void live_stop();
+         void update_live_speed( const int sec );
+ 
++        const LayoutTree* layout_tree() const { return m_layout_tree; }
++
+       protected:
+ 
+         // リアライズしたか
+diff -ur src.orig/article/layouttree.cpp src/article/layouttree.cpp
+--- src.orig/article/layouttree.cpp	2010-11-04 23:32:39.130008962 +0900
++++ src/article/layouttree.cpp	2010-11-05 00:11:43.030008967 +0900
+@@ -545,9 +545,9 @@
+ //
+ // レス番号 number のヘッダを返す
+ //
+-const LAYOUT* LayoutTree::get_header_of_res_const( const int number ){ return get_header_of_res( number ); }
++const LAYOUT* LayoutTree::get_header_of_res_const( const int number ) const { return get_header_of_res( number ); }
+ 
+-LAYOUT* LayoutTree::get_header_of_res( const int number )
++LAYOUT* LayoutTree::get_header_of_res( const int number ) const
+ {
+     if( ! m_vec_header ) return NULL;
+     if( number > m_max_res_number || number <= 0 ) return NULL;
+diff -ur src.orig/article/layouttree.h src/article/layouttree.h
+--- src.orig/article/layouttree.h	2010-11-04 23:32:39.123342299 +0900
++++ src/article/layouttree.h	2010-11-05 00:11:50.283342298 +0900
+@@ -142,8 +142,8 @@
+         void append_dat( const std::string& dat, int num );
+ 
+         // レス番号 number のヘッダを返す
+-        const LAYOUT* get_header_of_res_const( const int number );
+-        LAYOUT* get_header_of_res( const int number );
++        const LAYOUT* get_header_of_res_const( const int number ) const;
++        LAYOUT* get_header_of_res( const int number ) const;
+ 
+         // 新着セパレータ移動
+         // set_separator_new()にレス番号をセットしてからmove_separator()を呼ぶ
