@@ -1,6 +1,6 @@
 diff -ur src.orig/article/articleview.cpp src/article/articleview.cpp
---- src.orig/article/articleview.cpp	2010-11-04 23:32:39.123342300 +0900
-+++ src/article/articleview.cpp	2010-11-05 00:17:48.593342292 +0900
+--- src.orig/article/articleview.cpp	2011-08-04 07:04:28.278403876 +0900
++++ src/article/articleview.cpp	2011-08-06 02:51:18.419899919 +0900
 @@ -13,6 +13,9 @@
  
  #include "dbtree/interface.h"
@@ -22,17 +22,17 @@ diff -ur src.orig/article/articleview.cpp src/article/articleview.cpp
 +        const LAYOUT* layout = layout_tree->get_header_of_res_const( number_load - number_new + 1 );
 +        bool first = true;
 +        while( layout ){
-+          const LAYOUT* next_header = layout->next_header;
++            const LAYOUT* next_header = layout->next_header;
 +            while( layout ){
-+              if(layout->text && layout->type == DBTREE::NODE_LINK && layout->link && DBIMG::get_type_ext( layout->link ) != DBIMG::T_UNKNOWN ){
-+                  const std::string url( layout->link );
-+                  const int res_number = layout->res_number;
-+                  const std::string refurl = DBTREE::url_readcgi( url_article(), res_number, 0 );
-+                  if( ! DBIMG::is_cached( url ) ){
-+                      DBIMG::download_img_wait( url, refurl, mosaic, first );
-+                      first = false;
-+                  }
-+                  if( open_imageview ) CORE::core_set_command( "open_image", url );
++                if( layout->type == DBTREE::NODE_LINK && layout->node->linkinfo && layout->node->linkinfo->imglink ){
++                    const std::string url( layout->node->linkinfo->imglink );
++                    const int res_number = layout->res_number;
++                    const std::string refurl = DBTREE::url_readcgi( url_article(), res_number, 0 );
++                    if( ! DBIMG::is_cached( url ) ){
++                        DBIMG::download_img_wait( url, refurl, mosaic, first );
++                        first = false;
++                    }
++                    if( open_imageview ) CORE::core_set_command( "open_image", url );
 +              }
 +              layout = layout->next_layout;
 +            }
