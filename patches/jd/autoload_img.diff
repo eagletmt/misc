@@ -24,7 +24,7 @@ diff -ur src.orig/article/articleview.cpp src/article/articleview.cpp
 +        while( layout ){
 +            const LAYOUT* next_header = layout->next_header;
 +            while( layout ){
-+                if( layout->type == DBTREE::NODE_LINK && layout->node->linkinfo && layout->node->linkinfo->imglink ){
++                if( layout->type == DBTREE::NODE_LINK && layout->node && layout->node->linkinfo && layout->node->linkinfo->imglink ){
 +                    const std::string url( layout->node->linkinfo->imglink );
 +                    const int res_number = layout->res_number;
 +                    const std::string refurl = DBTREE::url_readcgi( url_article(), res_number, 0 );
