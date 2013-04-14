@@ -1,7 +1,6 @@
 liberator.plugins.pixiv = (function() {
   let libly = liberator.plugins.libly;
   let $LXs = libly.$U.getNodesFromXPath;
-  let $LX = libly.$U.getFirstNodeFromXPath;
   let tags_cache = {};
 
   function retrieve_tt_from_illust(illust_id, cont) {//{{{
@@ -32,7 +31,7 @@ liberator.plugins.pixiv = (function() {
 
   let pixivManager = {
     bookmark_illust: function(id, tags, comment, next) {  // {{{
-      let tt = $LX('//input[@name="tt"]');
+      let tt = content.document.querySelector('input[name="tt"]');
       if (!tt) {
         retrieve_tt_from_illust(id, cont);
       } else {
@@ -57,7 +56,7 @@ liberator.plugins.pixiv = (function() {
       }
     },  /// }}}
     bookmark_user: function(id, next) { // {{{
-      let tt = $LX('//input[@name="tt"]');
+      let tt = content.document.querySelector('input[name="tt"]');
       if (!tt) {
         retrieve_tt_from_user(id, cont);
       } else {
@@ -79,7 +78,7 @@ liberator.plugins.pixiv = (function() {
       }
     },  /// }}}
     delete_bookmark_user: function(id, next) {  // {{{
-      let tt = $LX('//input[@name="tt"]');
+      let tt = content.document.querySelector('input[name="tt"]');
       if (!tt) {
         retrieve_tt_from_user(id, cont);
       } else {
@@ -108,14 +107,12 @@ liberator.plugins.pixiv = (function() {
         let doc = res.doc;
 
         let obj = {};
-        let span = doc.querySelector('.bookmark_link');
+        let span = doc.querySelector('.bookmark_detail_body > h3 > span');
         obj.count = span ? span.textContent.match(/^\d+/)[0] : '0';
 
-        obj.entries = $LXs('//div[@class="bookmark_detail_body"]/ul', doc).map(function(ul) {
+        obj.entries = Array.map(doc.querySelectorAll('.bookmark_detail_body > ul'), function(ul) {
           let date = ul.querySelector('.days').textContent;
-          let img = ul.getElementsByTagName('img').item(0);
-          //let tags = $LXs('descendant::a[contains(@href, "tag=")]', ul).map(function(a)
-          //              decodeURIComponent(a.href.match(/tag=([^&]+)/)[1]));
+          let img = ul.querySelector('img');
           let tags = $LXs('descendant::a', ul).slice(3).map(function(a) a.textContent);
           return { date: date, imgsrc: img.src, user: img.alt, tags: tags };
         });
@@ -196,27 +193,24 @@ liberator.plugins.pixiv = (function() {
       }
 
       pixivManager.get_entries(RegExp.$1, function(r) {
-        let dd = <></>;
+        let dd = xml``;
         r.entries.forEach(function(e) {
-          dd += <>
+          dd += xml`
             <dd class="liberator-pixiv-bookmark-entry" highlight="Completions" style="margin: 0; height: 18px;">
-              <span class="liberator-pixiv-bookmark-date">{e.date}</span>
-              <span class="liberator-pixiv-bookmark-icon"><img src={e.imgsrc}/></span>
-              <span class="liberator-pixiv-bookmark-user">{e.user}</span>
-              <span class="liberator-pixiv-bookmark-tag" highlight="Tag" style="margin-left: 1em;">{e.tags.join(', ')}</span>
-            </dd>
-          </>;
+              <span class="liberator-pixiv-bookmark-date">${e.date}</span>
+              <span class="liberator-pixiv-bookmark-icon"><img src=${e.imgsrc}/></span>
+              <span class="liberator-pixiv-bookmark-user">${e.user}</span>
+              <span class="liberator-pixiv-bookmark-tag" highlight="Tag" style="margin-left: 1em;">${e.tags.join(', ')}</span>
+            </dd>`;
         });
 
         const TITLE = "\u3053\u306E\u30A4\u30E9\u30B9\u30C8\u3092\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3057\u3066\u3044\u308B\u30E6\u30FC\u30B6\u30FC";
-        let xml = <>
+        // XXX: This echoes raw string, not rendered one
+        liberator.echo(xml`
           <dl id="liberator-pixiv-bookmark" style="margin: 0;">
-            <dt highlight="CompTitle">{TITLE}  {r.count}({r.entries.length})</dt>
-            {dd}
-          </dl>
-        </>;
-
-        liberator.echo(xml);
+            <dt highlight="CompTitle">${TITLE}  ${r.count}(${r.entries.length})</dt>
+            ${dd}
+          </dl>`);
       });
     }, { argCount: '0' }, true);  // }}}
 
