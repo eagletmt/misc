@@ -154,8 +154,20 @@ liberator.plugins.pixiv = (function() {
           let req = new libly.Request('http://www.pixiv.net/bookmark_add.php?type=illust&illust_id=' + id);
           req.addEventListener('onSuccess', function(res) {
             let tags = unique(
-              res.getHTMLDocument('//div[@class="bookmark_recommend_tag"]/ul/li/a')
-              .map(function(a) a.firstChild.nodeValue));
+              res.getHTMLDocument('//*[contains(concat(" ",normalize-space(@class)," "), " tag ")]')
+              .map(function(e) e.getAttribute('data-tag')));
+            let m = res.responseText.match(/pixiv\.context\.tags = ('.+');/);
+            if (m) {
+              let h = JSON.parse(eval(m[1]));
+              for (tag in h) {
+                if (h.hasOwnProperty(tag)) {
+                  tags.push(tag);
+                }
+              }
+              tags = unique(tags);
+            } else {
+              liberator.echoerr('pixiv_bookmark: failed to extract pixiv.context.tags');
+            }
 
             tags_cache[url] = tags;
             context.title = ['tag'];
