@@ -39,6 +39,7 @@ OptionParser.new.tap do |parser|
   parser.on('-g GATEWAY') { |v| opts[:gateway] = v }
   parser.on('-a ADDRESS') { |v| opts[:address] = v }
   parser.on('-n NETMASK') { |v| opts[:netmask] = v.to_i }
+  parser.on('-i INTERFACE') { |v| opts[:interface] = v }
 end.parse! ARGV
 
 puts WiredIpService.new(opts).to_unit
