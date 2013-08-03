@@ -56,8 +56,8 @@ opts = {}
 OptionParser.new.tap do |parser|
   parser.on('-u USER') { |v| opts[:user] = v }
   parser.on('-r APP_ROOT') { |v| opts[:app_root] = v }
-  parser.on('-a AFTER') { |v| opts[:after] = v }
-  parser.on('-w WANTS') { |v| opts[:wants] = v }
+  parser.on('-a AFTER') { |v| opts[:after] ||= []; opts[:after] << v }
+  parser.on('-w WANTS') { |v| opts[:wants] ||= []; opts[:wants] << v }
   parser.on('-d DESCRIPTION') { |v| opts[:description] = v }
 end.parse! ARGV
 
