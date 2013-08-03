@@ -1,0 +1,20 @@
+[Unit]
+Description=Wired Static IP
+Wants=network.target
+Before=network.target
+BindsTo=sys-subsystem-net-devices-<%= interface %>.device
+After=sys-subsystem-net-devices-<%= interface %>.device
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+ExecStart=/sbin/ip link set dev <%= interface %> up
+ExecStart=/sbin/ip addr add <%= address %>/<%= netmask %> dev <%= interface %>
+ExecStart=/sbin/ip route add default via <%= gateway %>
+
+ExecStop=/sbin/ip addr flush dev <%= interface %>
+ExecStop=/sbin/ip link set dev <%= interface %> down
+
+[Install]
+WantedBy=multi-user.target
