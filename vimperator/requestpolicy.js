@@ -13,12 +13,14 @@
   function blockedCompleter(context, args) {
     window.requestpolicy.menu.prepareMenu();
     context.title = ['Host', 'Status'];
+    context.compare = void 0;
     context.completions = blockedDestinations().map(function(dest) [dest, 'Blocked']);
   }
 
   function allowedCompleter(context, args) {
     window.requestpolicy.menu.prepareMenu();
     context.title = ['Host', 'Status'];
+    context.compare = void 0;
     context.completions = allowedDestinations().map(function(dest) [dest, 'Allowed']);
   }
 
