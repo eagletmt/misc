@@ -17,12 +17,9 @@ pacstrap /mnt base grub sudo openssh
 genfstab -U -p /mnt >> /mnt/etc/fstab
 
 setup_chroot=/root/setup-chroot.sh
-dhcpcd_txt=/root/dhcpcd.txt
 curl -o /mnt/$setup_chroot "$http_root/setup-chroot.sh"
 chmod +x /mnt/$setup_chroot
-systemctl list-units | awk '/dhcpcd/{print $1}' > /mnt/$dhcpcd_txt
 arch-chroot /mnt $setup_chroot
 
 rm /mnt/$setup_chroot
-rm /mnt/$dhcpcd_txt
 reboot

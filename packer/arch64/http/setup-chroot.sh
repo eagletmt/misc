@@ -15,10 +15,13 @@ echo -e 'vagrant\nvagrant\n' | passwd vagrant
 echo 'vagrant ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/vagrant
 chmod 0440 /etc/sudoers.d/vagrant
 
+# Disable PredictableNetworkInterfaceNames.
+# See https://github.com/mitchellh/vagrant/blob/master/plugins/guests/arch/cap/configure_networks.rb
+ln -sf /dev/null /etc/udev/rules.d/80-net-name-slot.rules
+
 # For ssh
-dhcpcd_txt=/root/dhcpcd.txt
 systemctl enable sshd.service
-systemctl enable $(head -1 $dhcpcd_txt)
+systemctl enable dhcpcd@eth0.service
 
 mkinitcpio -p linux
 grub-install --target=i386-pc --recheck /dev/sda
