@@ -1,0 +1,14 @@
+[Unit]
+Description=Power on/off on bluetooth adapter %I (bluez5)
+Wants=bluetooth.service
+BindsTo=sys-subsystem-bluetooth-devices-%i.device
+After=bluetooth.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+ExecStart=/etc/systemd/scripts/btadapter %I true
+ExecStop=/etc/systemd/scripts/btadapter %I false
+
+[Install]
+WantedBy=multi-user.target
