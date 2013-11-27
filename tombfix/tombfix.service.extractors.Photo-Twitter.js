@@ -4,7 +4,7 @@
     ICON: Models.Twitter.ICON,
 
     getThumbnail: function(ctx) {
-      var e = ctx.document.querySelector('.twitter-timeline-link.media-thumbnail[data-resolved-url-large]');
+      var e = ctx.document.querySelector('.media[data-resolved-url-large]');
       return e ? e.getAttribute('data-resolved-url-large') : null;
     },
 
@@ -17,7 +17,7 @@
 
     extract: function(ctx) {
       var title = ctx.title.substring(0, ctx.title.indexOf(': '));
-      var text = ctx.document.querySelector('.js-tweet-text').textContent;
+      var text = ctx.document.querySelector('.permalink-tweet .tweet-text').textContent;
       return {
         type: 'photo',
         item: title + ': ' + text,
