@@ -1,0 +1,60 @@
+From 1b0992737892796047415f848d44b1d13de73254 Mon Sep 17 00:00:00 2001
+From: Kohei Suzuki <eagletmt@gmail.com>
+Date: Sat, 25 Jan 2014 03:20:51 +0900
+Subject: [PATCH 1/2] Load DAT from unkar
+
+---
+ src/dbtree/nodetree2ch.cpp | 22 +++++++++++++++++++++-
+ 1 file changed, 21 insertions(+), 1 deletion(-)
+
+diff --git a/src/dbtree/nodetree2ch.cpp b/src/dbtree/nodetree2ch.cpp
+index 74d09f3..81f859b 100644
+--- a/src/dbtree/nodetree2ch.cpp
++++ b/src/dbtree/nodetree2ch.cpp
+@@ -24,6 +24,7 @@ using namespace DBTREE;
+ enum
+ {
+     MODE_NORMAL = 0,
++    MODE_UNKAR,
+     MODE_OFFLAW,
+     MODE_KAKO_GZ,
+     MODE_KAKO
+@@ -123,6 +124,24 @@ void NodeTree2ch::create_loaderdata( JDLIB::LOADERDATA& data )
+         data.url = ss.str();
+     }
+ 
++    else if( m_mode == MODE_UNKAR ){
++
++        JDLIB::Regex regex;
++        const size_t offset = 0;
++        const bool icase = false;
++        const bool newline = true;
++        const bool usemigemo = false;
++        const bool wchar = false;
++
++        if( ! regex.exec( "http://[^/]*(/.*)/dat(/.*)\\.dat$", m_org_url, offset, icase, newline, usemigemo, wchar ) ) return;
++
++        // レジュームは無し
++        set_resume( false );
++        data.byte_readfrom = 0;
++
++        data.url = "http://unkar.org/convert.php" + regex.str( 1 ) + regex.str( 2 );
++    }
++
+     // 普通の読み込み
+     else{
+ 
+@@ -211,8 +230,9 @@ void NodeTree2ch::receive_finish()
+ 
+ */
+ 
++        if( m_mode == MODE_NORMAL ) m_mode = MODE_UNKAR;
+         // ログインしている場合は offlaw.cgi 経由で旧URLで再取得
+-        if( m_mode == MODE_NORMAL && CORE::get_login2ch()->login_now() ) m_mode = MODE_OFFLAW;
++        else if( m_mode == MODE_UNKAR && CORE::get_login2ch()->login_now() ) m_mode = MODE_OFFLAW;
+ 
+         // 過去ログ倉庫(gz圧縮)
+         // ただし 2008年1月1日以降に立てられたスレは除く
+-- 
+1.8.5.3
+
