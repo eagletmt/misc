@@ -1,6 +1,19 @@
-diff -ur src.orig/article/articleview.cpp src/article/articleview.cpp
---- src.orig/article/articleview.cpp	2011-08-04 07:04:28.278403876 +0900
-+++ src/article/articleview.cpp	2011-08-06 02:51:18.419899919 +0900
+From 991fe75ae81904aaefadcc1108da700a879988aa Mon Sep 17 00:00:00 2001
+From: Kohei Suzuki <eagletmt@gmail.com>
+Date: Sat, 25 Jan 2014 17:35:27 +0900
+Subject: [PATCH 2/2] Autoload images
+
+---
+ src/article/articleview.cpp | 28 ++++++++++++++++++++++++++++
+ src/article/drawareabase.h  |  2 ++
+ src/article/layouttree.cpp  |  4 ++--
+ src/article/layouttree.h    |  4 ++--
+ 4 files changed, 34 insertions(+), 4 deletions(-)
+
+diff --git a/src/article/articleview.cpp b/src/article/articleview.cpp
+index a374d09..90c9bda 100644
+--- a/src/article/articleview.cpp
++++ b/src/article/articleview.cpp
 @@ -13,6 +13,9 @@
  
  #include "dbtree/interface.h"
@@ -11,7 +24,7 @@ diff -ur src.orig/article/articleview.cpp src/article/articleview.cpp
  
  #include "jdlib/miscutil.h"
  #include "jdlib/misctime.h"
-@@ -543,6 +546,31 @@
+@@ -566,6 +569,31 @@ void ArticleViewMain::update_finish()
  
      if( m_show_instdialog ) show_instruct_diag();
  
@@ -43,10 +56,11 @@ diff -ur src.orig/article/articleview.cpp src/article/articleview.cpp
      if( m_show_closedialog && !number_load && is_old() ){
  
          SKELETON::MsgDiag mdiag( get_parent_win(), "DAT落ちしたためスレッドを取得できませんでした。\n\nタブを閉じますか？",
-diff -ur src.orig/article/drawareabase.h src/article/drawareabase.h
---- src.orig/article/drawareabase.h	2010-11-04 23:32:39.133342295 +0900
-+++ src/article/drawareabase.h	2010-11-05 00:09:19.453342299 +0900
-@@ -299,6 +299,8 @@
+diff --git a/src/article/drawareabase.h b/src/article/drawareabase.h
+index c01fbc2..271e636 100644
+--- a/src/article/drawareabase.h
++++ b/src/article/drawareabase.h
+@@ -317,6 +317,8 @@ namespace ARTICLE
          void live_stop();
          void update_live_speed( const int sec );
  
@@ -55,10 +69,11 @@ diff -ur src.orig/article/drawareabase.h src/article/drawareabase.h
        protected:
  
          // リアライズしたか
-diff -ur src.orig/article/layouttree.cpp src/article/layouttree.cpp
---- src.orig/article/layouttree.cpp	2010-11-04 23:32:39.130008962 +0900
-+++ src/article/layouttree.cpp	2010-11-05 00:11:43.030008967 +0900
-@@ -545,9 +545,9 @@
+diff --git a/src/article/layouttree.cpp b/src/article/layouttree.cpp
+index d31358a..ecf498d 100644
+--- a/src/article/layouttree.cpp
++++ b/src/article/layouttree.cpp
+@@ -547,9 +547,9 @@ void LayoutTree::append_dat( const std::string& dat, int num )
  //
  // レス番号 number のヘッダを返す
  //
@@ -70,10 +85,11 @@ diff -ur src.orig/article/layouttree.cpp src/article/layouttree.cpp
  {
      if( ! m_vec_header ) return NULL;
      if( number > m_max_res_number || number <= 0 ) return NULL;
-diff -ur src.orig/article/layouttree.h src/article/layouttree.h
---- src.orig/article/layouttree.h	2010-11-04 23:32:39.123342299 +0900
-+++ src/article/layouttree.h	2010-11-05 00:11:50.283342298 +0900
-@@ -142,8 +142,8 @@
+diff --git a/src/article/layouttree.h b/src/article/layouttree.h
+index 127481b..2913e05 100644
+--- a/src/article/layouttree.h
++++ b/src/article/layouttree.h
+@@ -142,8 +142,8 @@ namespace ARTICLE
          void append_dat( const std::string& dat, int num );
  
          // レス番号 number のヘッダを返す
@@ -84,3 +100,6 @@ diff -ur src.orig/article/layouttree.h src/article/layouttree.h
  
          // 新着セパレータ移動
          // set_separator_new()にレス番号をセットしてからmove_separator()を呼ぶ
+-- 
+1.8.5.3
+
