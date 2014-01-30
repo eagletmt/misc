@@ -1,9 +1,9 @@
 #!/usr/bin/env ruby
 require 'erb'
 
-class WiredIpService
+class WiredStaticIpService
   extend ERB::DefMethod
-  def_erb_method :to_unit, File.expand_path('../wired-ip.service.erb', __FILE__)
+  def_erb_method :to_unit, File.expand_path('../wired-static-ip.service.erb', __FILE__)
 
   def initialize(opts)
     @opts = opts
@@ -42,4 +42,4 @@ OptionParser.new.tap do |parser|
   parser.on('-i INTERFACE') { |v| opts[:interface] = v }
 end.parse! ARGV
 
-puts WiredIpService.new(opts).to_unit
+puts WiredStaticIpService.new(opts).to_unit
