@@ -32,10 +32,50 @@ static const int TS_PACKET_SIZE = 188;
 
 #define FAIL_IF_ERROR(s) err = (s); if (err < 0) goto fail
 
+static int find_main_streams(const AVFormatContext *ic, AVStream **in_audio, AVStream **in_video)
+{
+  /* Select audio and video in the most small program id */
+  static const int INVALID_PROGRAM_ID = 1000000000;
+  int program_id = INVALID_PROGRAM_ID;
+  unsigned i;
+  for (i = 0; i < ic->nb_programs; i++) {
+    AVProgram *program = ic->programs[i];
+    AVStream *audio = NULL, *video = NULL;
+    unsigned j;
+    if (program_id < program->id) {
+      continue;
+    }
+    for (j = 0; j < program->nb_stream_indexes; j++) {
+      AVStream *stream = ic->streams[program->stream_index[j]];
+      switch (stream->codec->codec_type) {
+        case AVMEDIA_TYPE_AUDIO:
+          audio = stream;
+          break;
+        case AVMEDIA_TYPE_VIDEO:
+          video = stream;
+          break;
+        default:
+          break;
+      }
+    }
+    if (audio != NULL && video != NULL) {
+      *in_audio = audio;
+      *in_video = video;
+      program_id = program->id;
+    }
+  }
+  if (program_id == INVALID_PROGRAM_ID) {
+    return AVERROR_STREAM_NOT_FOUND;
+  } else {
+    return 0;
+  }
+}
+
 static int clean_ts(const char *infile, const char *outfile, int64_t npackets)
 {
   AVFormatContext *ic = NULL, *oc = NULL;
   int err = 0;
+  AVStream *in_audio = NULL, *in_video = NULL;
 
   FAIL_IF_ERROR(avformat_open_input(&ic, infile, NULL, NULL));
   avio_seek(ic->pb, npackets * TS_PACKET_SIZE, SEEK_SET);
@@ -43,11 +83,7 @@ static int clean_ts(const char *infile, const char *outfile, int64_t npackets)
 
   av_log_set_level(AV_LOG_ERROR);
 
-  FAIL_IF_ERROR(av_find_best_stream(ic, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0));
-  const AVStream *in_audio = ic->streams[err];
-
-  FAIL_IF_ERROR(av_find_best_stream(ic, AVMEDIA_TYPE_VIDEO, -1, in_audio->index, NULL, 0));
-  const AVStream *in_video = ic->streams[err];
+  FAIL_IF_ERROR(find_main_streams(ic, &in_audio, &in_video));
 
   FAIL_IF_ERROR(avformat_alloc_output_context2(&oc, NULL, NULL, outfile));
   AVStream *out_video = avformat_new_stream(oc, in_video->codec->codec);
