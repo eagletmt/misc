@@ -41,6 +41,8 @@ static int clean_ts(const char *infile, const char *outfile, int64_t npackets)
   avio_seek(ic->pb, npackets * TS_PACKET_SIZE, SEEK_SET);
   FAIL_IF_ERROR(avformat_find_stream_info(ic, NULL));
 
+  av_log_set_level(AV_LOG_ERROR);
+
   FAIL_IF_ERROR(av_find_best_stream(ic, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0));
   const AVStream *in_audio = ic->streams[err];
 
