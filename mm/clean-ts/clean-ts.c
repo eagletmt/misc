@@ -116,11 +116,11 @@ static int clean_ts(const char *infile, const char *outfile, int64_t npackets)
       packet.duration = av_rescale_q_rnd(packet.duration, in_stream->time_base, out_stream->time_base, AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX);
       packet.pos = -1;
       err = av_interleaved_write_frame(oc, &packet);
+      if (err < 0) {
+        fprintf(stderr, "av_interleaved_write_frame(): Ignore error %s (at %"PRId64")\n", av_err2str(err), avio_tell(ic->pb));
+      }
     }
     av_free_packet(&packet);
-    if (err < 0) {
-      break;
-    }
   }
   if (err != AVERROR_EOF) {
     goto fail;
