@@ -134,6 +134,7 @@ static int has_stray_audio(const char *infile, int64_t npackets)
   AVFormatContext *ic = NULL;
   int err = 0;
   int ret = 0;
+  uint8_t *found_streams = NULL;
 
   FAIL_IF_ERROR(avformat_open_input(&ic, infile, NULL, NULL));
   avio_seek(ic->pb, npackets * TS_PACKET_SIZE, SEEK_SET);
@@ -148,7 +149,7 @@ static int has_stray_audio(const char *infile, int64_t npackets)
    * We have to avoid this kind of error.
    */
 
-  uint8_t *found_streams = av_mallocz(ic->nb_streams);
+  found_streams = av_mallocz(ic->nb_streams);
   unsigned i;
   for (i = 0; i < ic->nb_programs; i++) {
     const AVProgram *program = ic->programs[i];
@@ -167,6 +168,7 @@ static int has_stray_audio(const char *infile, int64_t npackets)
 
 fail:
   avformat_close_input(&ic);
+  av_free(found_streams);
   return ret;
 }
 
