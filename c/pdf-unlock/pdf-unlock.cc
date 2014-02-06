@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <termios.h>
+#include <memory>
 #include <poppler/Error.h>
 #include <poppler.h>
 #include <cairo/cairo-pdf.h>
@@ -43,20 +44,13 @@ int main(int argc, char *argv[])
   const char *inpath = argv[1];
   const char *outpath = argv[2];
 
-  GError *err = NULL;
-  int exitcode = 0;
-
-  GFile *infile = g_file_new_for_path(inpath);
-  cairo_surface_t *surface = NULL;
-  cairo_t *cairo = NULL;
-  double width, height;
-  PopplerPage *page = NULL;
-  int npages = 0;
-  int i;
-
+  // Suppress poppler's "Command Line Error"
   setErrorCallback(ignore, NULL);
-  PopplerDocument *doc = poppler_document_new_from_gfile(infile, argc == 3 ? NULL : argv[3], NULL, &err);
-  if (doc == NULL && err->code == POPPLER_ERROR_ENCRYPTED) {
+
+  const std::unique_ptr<GFile, decltype(&g_object_unref)> infile(g_file_new_for_path(inpath), g_object_unref);
+  GError *err = NULL;
+  std::unique_ptr<PopplerDocument, decltype(&g_object_unref)> doc(poppler_document_new_from_gfile(infile.get(), argc == 3 ? NULL : argv[3], NULL, &err), g_object_unref);
+  if (!doc && err->code == POPPLER_ERROR_ENCRYPTED) {
     g_clear_error(&err);
 
     char password[1024];
@@ -66,48 +60,35 @@ int main(int argc, char *argv[])
       strncpy(password, argv[3], sizeof(password)-1);
       password[sizeof(password)-1] = '\0';
     }
-
-    doc = poppler_document_new_from_gfile(infile, password, NULL, &err);
+    doc.reset(poppler_document_new_from_gfile(infile.get(), password, NULL, &err));
   }
-  if (doc == NULL) {
-    exitcode = 2;
-    goto fail;
-  }
-
-  page = poppler_document_get_page(doc, 0);
-  poppler_page_get_size(page, &width, &height);
-  g_object_unref(page);
-  surface = cairo_pdf_surface_create(outpath, width, height);
-  if (cairo_surface_status(surface) != CAIRO_STATUS_SUCCESS) {
-    g_print("Cannot create PDF surface: %gx%g: %s\n", width, height, outpath);
-    exitcode = 3;
-    goto fail;
-  }
-  cairo = cairo_create(surface);
-  if (cairo_status(cairo) != CAIRO_STATUS_SUCCESS) {
-    g_print("Cannot create cairo context\n");
-    exitcode = 3;
-    goto fail;
-  }
-
-  npages = poppler_document_get_n_pages(doc);
-  for (i = 0; i < npages; i++) {
-    page = poppler_document_get_page(doc, i);
-    poppler_page_render_for_printing(page, cairo);
-    cairo_show_page(cairo);
-    g_object_unref(page);
-  }
-  cairo_save(cairo);
-
-fail:
-  if (err != NULL) {
+  if (!doc) {
     g_print("%s(%d): %s\n", g_quark_to_string(err->domain), err->code, err->message);
     g_clear_error(&err);
+    return 2;
   }
-  cairo_destroy(cairo);
-  cairo_surface_destroy(surface);
-  g_object_unref(doc);
-  g_object_unref(infile);
 
-  return exitcode;
+  std::unique_ptr<PopplerPage, decltype(&g_object_unref)> page(poppler_document_get_page(doc.get(), 0), g_object_unref);
+  double width, height;
+  poppler_page_get_size(page.get(), &width, &height);
+  std::unique_ptr<cairo_surface_t, decltype(&cairo_surface_destroy)> surface(cairo_pdf_surface_create(outpath, width, height), cairo_surface_destroy);
+  if (cairo_surface_status(surface.get()) != CAIRO_STATUS_SUCCESS) {
+    g_print("Cannot create PDF surface: %gx%g: %s\n", width, height, outpath);
+    return 3;
+  }
+  std::unique_ptr<cairo_t, decltype(&cairo_destroy)> cairo(cairo_create(surface.get()), cairo_destroy);
+  if (cairo_status(cairo.get()) != CAIRO_STATUS_SUCCESS) {
+    g_print("Cannot create cairo context\n");
+    return 3;
+  }
+
+  const int npages = poppler_document_get_n_pages(doc.get());
+  for (int i = 0; i < npages; i++) {
+    page.reset(poppler_document_get_page(doc.get(), i));
+    poppler_page_render_for_printing(page.get(), cairo.get());
+    cairo_show_page(cairo.get());
+  }
+  cairo_save(cairo.get());
+
+  return 0;
 }
