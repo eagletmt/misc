@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <termios.h>
+#include <poppler/Error.h>
 #include <poppler.h>
 #include <cairo/cairo-pdf.h>
 
@@ -28,6 +29,10 @@ static void read_password(char *buf, size_t n)
   }
 }
 
+static void ignore(void *, ErrorCategory, Goffset, char *)
+{
+}
+
 int main(int argc, char *argv[])
 {
   if (argc != 3 && argc != 4) {
@@ -44,7 +49,12 @@ int main(int argc, char *argv[])
   GFile *infile = g_file_new_for_path(inpath);
   cairo_surface_t *surface = NULL;
   cairo_t *cairo = NULL;
+  double width, height;
+  PopplerPage *page = NULL;
+  int npages = 0;
+  int i;
 
+  setErrorCallback(ignore, NULL);
   PopplerDocument *doc = poppler_document_new_from_gfile(infile, argc == 3 ? NULL : argv[3], NULL, &err);
   if (doc == NULL && err->code == POPPLER_ERROR_ENCRYPTED) {
     g_clear_error(&err);
@@ -64,8 +74,7 @@ int main(int argc, char *argv[])
     goto fail;
   }
 
-  PopplerPage *page = poppler_document_get_page(doc, 0);
-  double width, height;
+  page = poppler_document_get_page(doc, 0);
   poppler_page_get_size(page, &width, &height);
   g_object_unref(page);
   surface = cairo_pdf_surface_create(outpath, width, height);
@@ -81,8 +90,7 @@ int main(int argc, char *argv[])
     goto fail;
   }
 
-  const int npages = poppler_document_get_n_pages(doc);
-  int i;
+  npages = poppler_document_get_n_pages(doc);
   for (i = 0; i < npages; i++) {
     page = poppler_document_get_page(doc, i);
     poppler_page_render_for_printing(page, cairo);
