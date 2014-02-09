@@ -7,3 +7,9 @@ FFmpeg や MPlayer でうまく処理できるように MPEG-2 TS ファイル�
 「主要な」ストリームを「id が最も小さい Program に属しているストリーム」としている。
 FFmpeg に `av_find_best_stream` という API があり、これは解像度やビットレートから「主要な」ストリームを判断している。
 ほとんどの場合 `av_find_best_stream` でうまくいくが、マルチ編成時にサブチャンネルを選択することがあったので、Program id を判断基準にしている。
+
+## Install
+```sh
+cmake . -DCMAKE_BUILD_TYPE=release -DCMAKE_INSTALL_PREFIX=/usr
+make install
+```
