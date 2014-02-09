@@ -69,11 +69,9 @@ int main(int argc, char *argv[])
   }
 
   std::unique_ptr<PopplerPage, decltype(&g_object_unref)> page(poppler_document_get_page(doc.get(), 0), g_object_unref);
-  double width, height;
-  poppler_page_get_size(page.get(), &width, &height);
-  std::unique_ptr<cairo_surface_t, decltype(&cairo_surface_destroy)> surface(cairo_pdf_surface_create(outpath, width, height), cairo_surface_destroy);
+  std::unique_ptr<cairo_surface_t, decltype(&cairo_surface_destroy)> surface(cairo_pdf_surface_create(outpath, 0, 0), cairo_surface_destroy);
   if (cairo_surface_status(surface.get()) != CAIRO_STATUS_SUCCESS) {
-    g_print("Cannot create PDF surface: %gx%g: %s\n", width, height, outpath);
+    g_print("Cannot create PDF surface: %s\n", outpath);
     return 3;
   }
   std::unique_ptr<cairo_t, decltype(&cairo_destroy)> cairo(cairo_create(surface.get()), cairo_destroy);
@@ -85,6 +83,9 @@ int main(int argc, char *argv[])
   const int npages = poppler_document_get_n_pages(doc.get());
   for (int i = 0; i < npages; i++) {
     page.reset(poppler_document_get_page(doc.get(), i));
+    double width, height;
+    poppler_page_get_size(page.get(), &width, &height);
+    cairo_pdf_surface_set_size(surface.get(), width, height);
     poppler_page_render_for_printing(page.get(), cairo.get());
     cairo_show_page(cairo.get());
   }
