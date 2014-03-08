@@ -3,15 +3,15 @@
     {
       "type": "virtualbox",
       "guest_os_type": "ArchLinux_64",
-      "iso_url": "http://ftp.jaist.ac.jp/pub/Linux/ArchLinux/iso/2013.08.01/archlinux-2013.08.01-dual.iso",
-      "iso_checksum": "65aaf2184f19d2bfcd9845688884c03d0f2efc52",
+      "iso_url": "http://ftp.jaist.ac.jp/pub/Linux/ArchLinux/iso/2014.03.01/archlinux-2014.03.01-dual.iso",
+      "iso_checksum": "bc24540b60a5128d51b6abda462807ce51c77704",
       "iso_checksum_type": "sha1",
       "disk_size": 8000,
       "ssh_username": "vagrant",
       "ssh_password": "vagrant",
       "http_directory": "http",
       "boot_command": [
-        "<enter><wait10>",
+        "<enter><wait10><wait10>",
         "curl -O http://{{ .HTTPIP }}:{{ .HTTPPort }}/setup.sh<enter><wait>",
         "sh setup.sh http://{{ .HTTPIP }}:{{ .HTTPPort }}<enter>"
       ],
