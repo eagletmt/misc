@@ -17,7 +17,9 @@ chmod 0440 /etc/sudoers.d/vagrant
 
 # Disable PredictableNetworkInterfaceNames.
 # See https://github.com/mitchellh/vagrant/blob/master/plugins/guests/arch/cap/configure_networks.rb
-ln -sf /dev/null /etc/udev/rules.d/80-net-name-slot.rules
+# and http://www.freedesktop.org/wiki/Software/systemd/PredictableNetworkInterfaceNames/#idontlikethishowdoidisablethis
+ln -sf /dev/null /etc/udev/rules.d/80-net-name-slot.rules # v197 <= systemd <= v208
+ln -sf /dev/null /etc/udev/rules.d/80-net-setup-link.rules  # v209 <= systemd
 
 # For ssh
 systemctl enable sshd.service
