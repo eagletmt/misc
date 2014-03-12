@@ -5,6 +5,6 @@
 
 ```sh
 packer build template.json
-mv packer_virtualbox_virtualbox.box /tmp/arch64.box
+mv packer_virtualbox-iso_virtualbox.box /tmp/arch64.box
 vagrant up
 ```
