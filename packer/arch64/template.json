@@ -1,7 +1,7 @@
 {
   "builders": [
     {
-      "type": "virtualbox",
+      "type": "virtualbox-iso",
       "guest_os_type": "ArchLinux_64",
       "iso_url": "http://ftp.jaist.ac.jp/pub/Linux/ArchLinux/iso/2014.03.01/archlinux-2014.03.01-dual.iso",
       "iso_checksum": "bc24540b60a5128d51b6abda462807ce51c77704",
