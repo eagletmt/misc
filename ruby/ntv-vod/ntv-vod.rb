@@ -120,6 +120,7 @@ class VodBrowser
         # ignore
       when 'paused'
         @player.play
+        sleep 5 # XXX: Avoid invalidToken error
       when 'playing', 'buffering'
         return
       when 'error'
