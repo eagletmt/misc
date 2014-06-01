@@ -50,6 +50,10 @@ def resolve_name(dns, name)
     puts "#{name} #{@rainbow.type('MX')} #{@rainbow.name(mx.exchange.to_s)} #{mx.preference}"
   end
 
+  dns.each_resource(name, Resolv::DNS::Resource::IN::TXT) do |txt|
+    puts "#{name} #{@rainbow.type('TXT')} #{@rainbow.name(txt.data)}"
+  end
+
   begin
     loop do
       cname = dns.getresource(name, Resolv::DNS::Resource::IN::CNAME)
