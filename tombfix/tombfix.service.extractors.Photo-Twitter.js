@@ -5,7 +5,7 @@
 
     getThumbnail: function(ctx) {
       var e = ctx.document.querySelector('.media[data-resolved-url-large]');
-      return e ? e.getAttribute('data-resolved-url-large') : null;
+      return e ? e.getAttribute('data-resolved-url-large').replace(/large$/, 'orig') : null;
     },
 
     check: function(ctx) {
