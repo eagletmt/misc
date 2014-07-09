@@ -55,6 +55,16 @@ open(east_asian_width_url).each_line do |line|
       ranges << cr
       cr = CharRange.new char
     end
+  elsif m = line.match(/\A([0-9A-F]+)\.\.([0-9A-F]+);A/)
+    c1 = m[1].to_i(16)
+    c2 = m[2].to_i(16)
+    if cr.right == c1
+      cr.right += (c2 - c1 + 1)
+    else
+      ranges << cr
+      cr = CharRange.new(c1)
+      cr.right = c2 + 1
+    end
   end
 end
 ranges << cr
