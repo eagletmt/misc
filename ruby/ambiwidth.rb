@@ -28,17 +28,17 @@ class CharRange
     when @left == @right
       ''
     when @left+1 == @right
-      "#{format_codepoint @left}\t\t\t2\n"
+      "#{format_codepoint(@left)}\t\t\t2\n"
     else
-      "#{format_codepoint @left}...#{format_codepoint @right-1}\t2\n"
+      "#{format_codepoint(@left)}...#{format_codepoint(@right-1)}\t2\n"
     end
   end
 
   def format_codepoint(c)
     if c < 0x10000
-      sprintf '<U%04X>', c
+      sprintf('<U%04X>', c)
     else
-      sprintf '<U%08X>', c
+      sprintf('<U%08X>', c)
     end
   end
 end
@@ -53,7 +53,7 @@ open(east_asian_width_url).each_line do |line|
       cr.right += 1
     else
       ranges << cr
-      cr = CharRange.new char
+      cr = CharRange.new(char)
     end
   elsif m = line.match(/\A([0-9A-F]+)\.\.([0-9A-F]+);A/)
     c1 = m[1].to_i(16)
