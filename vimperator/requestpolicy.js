@@ -1,6 +1,6 @@
 (function() {
   if (!window.requestpolicy) {
-    liberator.echoerr('RequestPolicy is not installed');
+    liberator.log('RequestPolicy is not installed');
     return;
   }
 
