@@ -8,22 +8,17 @@
 
 (function() {
   window.addEventListener('load', function() {
-    document.addEventListener('DOMNodeInserted', onInserted, false);
-    document.addEventListener('DOMAttrModified', onModified, false);
-    Array.prototype.forEach.call(document.querySelectorAll('.twitter-timeline-link'), killTCo);
+    var observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        onInserted(mutation.target);
+      });
+    });
+    observer.observe(document, { childList: true, subtree: true });
   }, false);
 
-  function onInserted(evt) {
-    var elt = evt.target;
+  function onInserted(elt) {
     if (elt instanceof HTMLElement) {
       Array.prototype.forEach.call(elt.querySelectorAll('.twitter-timeline-link'), killTCo);
-    }
-  }
-
-  function onModified(evt) {
-    var elt = evt.target;
-    if (elt.getAttribute('class') == 'twitter-timeline-link') {
-      killTCo(elt);
     }
   }
 
