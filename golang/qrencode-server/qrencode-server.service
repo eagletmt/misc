@@ -1,0 +1,8 @@
+[Unit]
+Description=Simple libqrencode wrapper server
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/qrencode-server
+StandardOutput=journal
+StandardError=journal
