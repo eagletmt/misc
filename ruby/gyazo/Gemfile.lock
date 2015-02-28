@@ -1,0 +1,33 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    ast (2.0.0)
+    aws-sdk-core (2.0.28)
+      builder (~> 3.0)
+      jmespath (~> 1.0)
+      multi_json (~> 1.0)
+      multi_xml (~> 0.5)
+    builder (3.2.2)
+    dotenv (1.0.2)
+    escape_utils (1.0.1)
+    fast_haml (0.1.4)
+      escape_utils
+      parser
+      temple
+      tilt
+    jmespath (1.0.2)
+      multi_json (~> 1.0)
+    multi_json (1.10.1)
+    multi_xml (0.5.5)
+    parser (2.2.0.3)
+      ast (>= 1.1, < 3.0)
+    temple (0.7.5)
+    tilt (2.0.1)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  aws-sdk-core
+  dotenv
+  fast_haml

@@ -1,0 +1,68 @@
+#!/usr/bin/env ruby
+ENV['BUNDLE_GEMFILE'] ||= File.join(__dir__, 'Gemfile')
+require 'bundler/setup'
+
+require 'optparse'
+require 'digest'
+require 'pathname'
+require 'stringio'
+
+require 'aws-sdk-core'
+require 'dotenv'
+require 'fast_haml'
+
+URL_PREFIX = 'https://gyazo.wanko.cc'
+
+class Renderer
+  code = FastHaml::Engine.new.call(<<'HAML')
+!!!
+%html
+  %head
+    %meta{charset: 'utf-8'}
+    %title= fname
+    %meta{name: 'twitter:card', content: 'photo'}
+    %meta{name: 'twitter:title', content: fname}
+    %meta{name: 'twitter:image', content: "#{URL_PREFIX}/#{fname}"}
+    %meta{name: 'twitter:url', content: "#{URL_PREFIX}/#{fname}"}
+    %meta{name: 'og:image', content: "#{URL_PREFIX}/#{fname}"}
+  %body
+    %img{src: "#{URL_PREFIX}/#{fname}", alt: fname}
+HAML
+  class_eval("def render(fname); #{code}; end")
+end
+
+Dotenv.load
+renderer = Renderer.new
+s3 = Aws::S3::Client.new
+bucket_name = ENV['BUCKET_NAME']
+unless bucket_name
+  $stderr.puts "BUCKET_NAME is missing"
+  exit 1
+end
+
+ARGV.each do |arg|
+  path = Pathname.new(arg)
+  fname_base = Digest::MD5.file(path.to_s).hexdigest
+  fname = "#{fname_base}#{path.extname}"
+
+  html = renderer.render(fname)
+  path.open do |f|
+    s3.put_object(
+      acl: 'public-read',
+      bucket: bucket_name,
+      storage_class: 'REDUCED_REDUNDANCY',
+      key: fname,
+      body: f,
+    )
+  end
+
+  s3.put_object(
+    acl: 'public-read',
+    bucket: bucket_name,
+    storage_class: 'REDUCED_REDUNDANCY',
+    key: fname_base,
+    body: StringIO.new(html),
+    content_type: 'text/html',
+  )
+  puts "#{path} -> #{URL_PREFIX}/#{fname_base} (https://s3-#{ENV['AWS_REGION']}.amazonaws.com/#{bucket_name}/#{fname_base})"
+end

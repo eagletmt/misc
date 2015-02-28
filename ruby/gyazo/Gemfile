@@ -1,0 +1,5 @@
+source 'https://rubygems.org'
+
+gem 'fast_haml'
+gem 'aws-sdk-core'
+gem 'dotenv'
