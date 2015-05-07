@@ -157,6 +157,8 @@ SERVER_EMAIL = os.environ['SENTRY_SERVER_EMAIL']
 ## etc. ##
 ###########
 
+SENTRY_MAX_STACKTRACE_FRAMES = 1000
+
 # http://twitter.com/apps/new
 # It's important that input a callback URL, even if its useless. We have no idea why, consult Twitter.
 TWITTER_CONSUMER_KEY = ''
