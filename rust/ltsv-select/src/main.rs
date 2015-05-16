@@ -49,7 +49,9 @@ fn print_usage(program: &str, options: getopts::Options) {
 fn ltsv_select(labels: HashSet<String>, path: Option<&String>) -> io::Result<()> {
     match path {
         None => {
-            ltsv_select2(labels, io::BufReader::new(io::stdin()))
+            let stdin = io::stdin();
+            let lock = stdin.lock();
+            ltsv_select2(labels, lock)
         }
         Some(path) => {
             let file = try!(File::open(path));
