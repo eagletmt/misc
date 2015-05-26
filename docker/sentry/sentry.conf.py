@@ -185,29 +185,3 @@ BITBUCKET_CONSUMER_KEY = ''
 BITBUCKET_CONSUMER_SECRET = ''
 
 SENTRY_ALLOW_REGISTRATION = True
-SOCIAL_AUTH_CREATE_USERS = True
-SOCIAL_AUTH_SESSION_EXPIRATION = False
-
-SOCIAL_AUTH_PIPELINE = (
-    'social_auth.backends.pipeline.user.get_username',
-    'social_auth.backends.pipeline.social.social_auth_user',
-    'social_auth.backends.pipeline.associate.associate_by_email',
-    'social_auth.backends.pipeline.misc.save_status_to_session',
-    'sentry.utils.social_auth.create_user_if_enabled',
-    'social_auth.backends.pipeline.social.associate_user',
-    'social_auth.backends.pipeline.social.load_extra_data',
-    'social_auth.backends.pipeline.user.update_user_details',
-    'social_auth.backends.pipeline.misc.save_status_to_session',
-)
-
-AUTHENTICATION_BACKENDS = (
-    'social_auth.backends.google.GoogleOAuth2Backend',
-    'sentry.utils.auth.EmailAuthBackend',
-)
-AUTH_PROVIDERS = {
-    'google-oauth2': ('GOOGLE_OAUTH2_CLIENT_ID', 'GOOGLE_OAUTH2_CLIENT_SECRET'),
-}
-
-GOOGLE_WHITE_LISTED_DOMAINS = os.environ['SENTRY_GOOGLE_WHITE_LISTED_DOMAINS'].split(',')
-GOOGLE_OAUTH2_CLIENT_ID = os.environ['SENTRY_GOOGLE_CLIENT_ID']
-GOOGLE_OAUTH2_CLIENT_SECRET = os.environ['SENTRY_GOOGLE_CLIENT_SECRET']

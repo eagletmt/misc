@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
   && apt-get -y upgrade \
   && apt-get install -y python-dev python-pip libxml2-dev libxslt-dev libpq-dev libffi-dev
-RUN pip install sentry==7.4.3 psycopg2
+RUN pip install sentry==7.5.0 psycopg2
 ADD sentry.conf.py /root/.sentry/sentry.conf.py
 RUN mkdir /log
 CMD ["sentry", "start"]
