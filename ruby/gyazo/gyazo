@@ -31,7 +31,14 @@ HAML
   class_eval("def render(fname); #{code}; end")
 end
 
-Dotenv.load
+def check_twitter_photo_card_properties!(path)
+  if path.size >= 1<<20
+    raise "#{path} must be less than 1MB"
+  end
+  true
+end
+
+Dotenv.load(File.join(__dir__, '.env'))
 renderer = Renderer.new
 s3 = Aws::S3::Client.new
 bucket_name = ENV['BUCKET_NAME']
@@ -42,6 +49,7 @@ end
 
 ARGV.each do |arg|
   path = Pathname.new(arg)
+  check_twitter_photo_card_properties!(path)
   fname_base = Digest::MD5.file(path.to_s).hexdigest
   fname = "#{fname_base}#{path.extname}"
 
