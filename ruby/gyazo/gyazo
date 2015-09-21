@@ -9,12 +9,12 @@ require 'stringio'
 
 require 'aws-sdk-core'
 require 'dotenv'
-require 'fast_haml'
+require 'faml'
 
 URL_PREFIX = 'https://gyazo.wanko.cc'
 
 class Renderer
-  code = FastHaml::Engine.new.call(<<'HAML')
+  code = Faml::Engine.new.call(<<'HAML')
 !!!
 %html
   %head
