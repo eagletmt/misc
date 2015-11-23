@@ -11,17 +11,17 @@
     }
   }
 
-  function addPermission(host, perm) {
-    manager.add(makeURI('http://' + host), 'cookie', perm);
+  function addPermission(origin, perm) {
+    manager.add(makeURI(origin), 'cookie', perm);
   }
 
-  function removePermission(host) {
-    manager.remove(host, 'cookie');
+  function removePermission(origin) {
+    manager.remove(origin, 'cookie');
   }
 
   function hostCompleter(context, args) {
-    context.title = ['Host'];
-    context.completions = [[content.window.location.host]];
+    context.title = ['Origin'];
+    context.completions = [[content.window.location.origin]];
   }
 
   let PERM_DESC = {};
@@ -32,8 +32,9 @@
   PERM_DESC[8] = 'Allow for Session';
 
   function permissionCompleter(context, args) {
-    context.title = ['Host', 'Permission'];
-    context.completions = [[p.host, PERM_DESC[p.capability]] for (p in permissionGenerator())];
+    context.title = ['Origin', 'Permission'];
+    // FIXME: p.host is always undefined.
+    context.completions = [for (p of permissionGenerator()) if (p.host) [p.host, PERM_DESC[p.capability]]];
   }
 
   commands.addUserCommand(['cp', 'cookiePermission'], 'Cookie Permission',
