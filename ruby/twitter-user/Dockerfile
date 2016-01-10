@@ -1,13 +1,14 @@
-FROM ubuntu:14.10
+FROM ubuntu:15.10
 MAINTAINER Kohei Suzuki <eagletmt@gmail.com>
 
-RUN env DEBIAN_FRONTEND=noninteractive apt-get install -y software-properties-common \
+RUN apt-get update \
+  && env DEBIAN_FRONTEND=noninteractive apt-get install -y software-properties-common \
   && apt-add-repository ppa:brightbox/ruby-ng \
   && apt-get update \
   && env DEBIAN_FRONTEND=noninteractive apt-get upgrade -y \
-  && env DEBIAN_FRONTEND=noninteractive apt-get install -y ruby2.2 ruby2.2-dev postgresql-client libpq-dev build-essential \
+  && env DEBIAN_FRONTEND=noninteractive apt-get install -y ruby2.3=2.3.0-1bbox2~wily1 ruby2.3-dev postgresql-client libpq-dev build-essential \
   && apt-get clean
-RUN gem install --no-user-install --no-ri --no-rdoc bundler -v 1.8.3
+RUN gem install --no-user-install --no-ri --no-rdoc bundler -v 1.11.2
 
 RUN mkdir -p /app
 
