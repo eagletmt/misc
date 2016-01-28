@@ -37,6 +37,9 @@
     context.completions = [for (p of permissionGenerator()) if (p.host) [p.host, PERM_DESC[p.capability]]];
   }
 
+  // XXX: For Firefox 44+
+  // https://blog.mozilla.org/addons/2015/10/14/breaking-changes-let-const-firefox-nightly-44/
+  const Command = commands.getUserCommands()[0].constructor;
   commands.addUserCommand(['cp', 'cookiePermission'], 'Cookie Permission',
     function() {},
     {

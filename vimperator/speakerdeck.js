@@ -22,6 +22,9 @@
     });
   }
 
+  // XXX: For Firefox 44+
+  // https://blog.mozilla.org/addons/2015/10/14/breaking-changes-let-const-firefox-nightly-44/
+  const Command = commands.getUserCommands()[0].constructor;
   commands.addUserCommand(['speakerdeck'], 'speakerdeck controller',
     function() {
     }, {
