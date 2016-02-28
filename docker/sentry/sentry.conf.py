@@ -115,9 +115,6 @@ SENTRY_TSDB = 'sentry.tsdb.redis.RedisTSDB'
 ## Web Server ##
 ################
 
-# You MUST configure the absolute URI root for Sentry:
-SENTRY_URL_PREFIX = os.environ['SENTRY_URL_PREFIX'] # No trailing slash!
-
 # If you're using a reverse proxy, you should enable the X-Forwarded-Proto
 # and X-Forwarded-Host headers, and uncomment the following settings
 # SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -132,8 +129,6 @@ SENTRY_WEB_OPTIONS = {
     'errorlog': '/log/sentry.error.log',
 }
 LOGGING['disable_existing_loggers'] = False
-
-SENTRY_ALLOW_REGISTRATION = False
 
 #################
 ## Mail Server ##
@@ -169,8 +164,8 @@ FACEBOOK_APP_ID = ''
 FACEBOOK_API_SECRET = ''
 
 # http://code.google.com/apis/accounts/docs/OAuth2.html#Registering
-GOOGLE_OAUTH2_CLIENT_ID = ''
-GOOGLE_OAUTH2_CLIENT_SECRET = ''
+GOOGLE_CLIENT_ID = os.environ.get('SENTRY_GOOGLE_CLIENT_ID', '')
+GOOGLE_CLIENT_SECRET = os.environ.get('SENTRY_GOOGLE_CLIENT_SECRET', '')
 
 # https://github.com/settings/applications/new
 GITHUB_APP_ID = ''
