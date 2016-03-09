@@ -8,7 +8,7 @@ require 'pathname'
 require 'stringio'
 
 require 'aws-sdk-core'
-require 'dotenv'
+require 'denv'
 require 'faml'
 
 URL_PREFIX = 'https://gyazo.wanko.cc'
@@ -38,7 +38,7 @@ def check_twitter_photo_card_properties!(path)
   true
 end
 
-Dotenv.load(File.join(__dir__, '.env'))
+Denv.load(File.join(__dir__, '.env'))
 renderer = Renderer.new
 s3 = Aws::S3::Client.new
 bucket_name = ENV['BUCKET_NAME']
