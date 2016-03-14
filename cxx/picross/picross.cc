@@ -1,6 +1,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <algorithm>
 using namespace std;
 
 enum status {
@@ -79,13 +80,11 @@ bool bad_pattern_p(const vector<status> &row, const vector<status> &pattern) {
 
 void erase_bad_patterns(const vector<status> &row,
                         vector<vector<status>> &patterns) {
-  for (auto it = patterns.begin(); it != patterns.end();) {
-    if (bad_pattern_p(row, *it)) {
-      it = patterns.erase(it);
-    } else {
-      ++it;
-    }
-  }
+  auto it = remove_if(patterns.begin(), patterns.end(),
+                      [&row](const vector<status> &pattern) {
+                        return bad_pattern_p(row, pattern);
+                      });
+  patterns.erase(it, patterns.end());
 }
 
 bool deduce_one(vector<status> &row, vector<vector<status>> &patterns) {
