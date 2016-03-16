@@ -10,18 +10,20 @@ enum status {
   WHITE,
 };
 
+struct contradict {};
+
 void show_row(const vector<status> &row, int C) {
   for (int i = 0; i < C; i++) {
     switch (row[i]) {
-    case UNKNOWN:
-      cout << '?';
-      break;
-    case BLACK:
-      cout << 'o';
-      break;
-    case WHITE:
-      cout << 'x';
-      break;
+      case UNKNOWN:
+        cout << '?';
+        break;
+      case BLACK:
+        cout << 'o';
+        break;
+      case WHITE:
+        cout << 'x';
+        break;
     }
   }
   cout << endl;
@@ -106,6 +108,9 @@ bool deduce_one(vector<status> &row, vector<vector<status>> &patterns, int N) {
       }
     }
   }
+  if (count(row.begin(), row.begin() + N, UNKNOWN) != 0 && patterns.empty()) {
+    throw contradict();
+  }
 
   bool modified = false;
   for (int i = 0; i < N; i++) {
@@ -156,7 +161,7 @@ vector<vector<status>> solve(const vector<vector<int>> &row_hints,
   return grid;
 }
 
-int main() {
+int main() try {
   vector<string> lines;
   for (string line; getline(cin, line);) {
     lines.push_back(line);
@@ -187,4 +192,6 @@ int main() {
   show_grid(grid, R, C);
 
   return 0;
+} catch (const contradict &) {
+  cerr << "Invalid input: contradict" << endl;
 }
