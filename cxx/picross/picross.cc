@@ -10,9 +10,9 @@ enum status {
   WHITE,
 };
 
-void show_row(const vector<status> &row) {
-  for (const status &cell : row) {
-    switch (cell) {
+void show_row(const vector<status> &row, int C) {
+  for (int i = 0; i < C; i++) {
+    switch (row[i]) {
     case UNKNOWN:
       cout << '?';
       break;
@@ -27,9 +27,9 @@ void show_row(const vector<status> &row) {
   cout << endl;
 }
 
-void show_grid(const vector<vector<status>> &grid) {
-  for (const vector<status> &row : grid) {
-    show_row(row);
+void show_grid(const vector<vector<status>> &grid, int R, int C) {
+  for (int i = 0; i < R; i++) {
+    show_row(grid[i], C);
   }
 }
 
@@ -87,8 +87,7 @@ void erase_bad_patterns(const vector<status> &row,
   patterns.erase(it, patterns.end());
 }
 
-bool deduce_one(vector<status> &row, vector<vector<status>> &patterns) {
-  const int N = row.size();
+bool deduce_one(vector<status> &row, vector<vector<status>> &patterns, int N) {
   vector<status> candidate(N, UNKNOWN);
   vector<int> bad_candidate(N, 0);
 
@@ -119,11 +118,10 @@ bool deduce_one(vector<status> &row, vector<vector<status>> &patterns) {
 }
 
 bool deduce(vector<vector<status>> &grid,
-            vector<vector<vector<status>>> &patterns) {
-  const int N = grid.size();
+            vector<vector<vector<status>>> &patterns, int R, int C) {
   bool modified = false;
-  for (int i = 0; i < N; i++) {
-    if (deduce_one(grid[i], patterns[i])) {
+  for (int i = 0; i < R; i++) {
+    if (deduce_one(grid[i], patterns[i], C)) {
       modified = true;
     }
   }
@@ -132,19 +130,23 @@ bool deduce(vector<vector<status>> &grid,
 
 vector<vector<status>> solve(const vector<vector<int>> &row_hints,
                              const vector<vector<int>> &col_hints) {
-  const int N = row_hints.size();
+  const int R = row_hints.size();
+  const int C = col_hints.size();
+  const int N = std::max(R, C);
   vector<vector<status>> grid(N, vector<status>(N, UNKNOWN));
 
-  vector<vector<vector<status>>> row_patterns(N), col_patterns(N);
-  for (int i = 0; i < N; i++) {
-    all_patterns(row_patterns[i], row_hints[i], N);
-    all_patterns(col_patterns[i], col_hints[i], N);
+  vector<vector<vector<status>>> row_patterns(R), col_patterns(C);
+  for (int i = 0; i < R; i++) {
+    all_patterns(row_patterns[i], row_hints[i], C);
+  }
+  for (int i = 0; i < C; i++) {
+    all_patterns(col_patterns[i], col_hints[i], R);
   }
 
   for (;;) {
-    const bool row_modified = deduce(grid, row_patterns);
+    const bool row_modified = deduce(grid, row_patterns, R, C);
     transpose(grid);
-    const bool col_modified = deduce(grid, col_patterns);
+    const bool col_modified = deduce(grid, col_patterns, C, R);
     transpose(grid);
     if (!row_modified && !col_modified) {
       break;
@@ -159,23 +161,30 @@ int main() {
   for (string line; getline(cin, line);) {
     lines.push_back(line);
   }
-  const int N = lines.size() / 2;
-  vector<vector<int>> row_hints(N), col_hints(N);
-  for (int i = 0; i < N; i++) {
-    istringstream iss(lines[i]);
+  unsigned R, C;
+  {
+    istringstream iss(lines[0]);
+    iss >> R >> C;
+  }
+  if (lines.size() != R + C + 1) {
+    cerr << "Invalid input format" << endl;
+  }
+  vector<vector<int>> row_hints(R), col_hints(C);
+  for (unsigned i = 0; i < R; i++) {
+    istringstream iss(lines[i + 1]);
     for (int n; iss >> n;) {
       row_hints[i].push_back(n);
     }
   }
-  for (int i = 0; i < N; i++) {
-    istringstream iss(lines[i + N]);
+  for (unsigned i = 0; i < C; i++) {
+    istringstream iss(lines[i + 1 + R]);
     for (int n; iss >> n;) {
       col_hints[i].push_back(n);
     }
   }
 
   const vector<vector<status>> grid = solve(row_hints, col_hints);
-  show_grid(grid);
+  show_grid(grid, R, C);
 
   return 0;
 }
