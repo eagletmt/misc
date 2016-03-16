@@ -14,9 +14,12 @@ struct contradict {};
 
 void show_row(const vector<status> &row, int C) {
   for (int i = 0; i < C; i++) {
+    if (i != 0 && i % 5 == 0) {
+      cout << '|';
+    }
     switch (row[i]) {
       case UNKNOWN:
-        cout << '?';
+        cout << ' ';
         break;
       case BLACK:
         cout << 'o';
@@ -30,9 +33,14 @@ void show_row(const vector<status> &row, int C) {
 }
 
 void show_grid(const vector<vector<status>> &grid, int R, int C) {
+  const string rule(C + (C / 5 - 1), '-');
   for (int i = 0; i < R; i++) {
+    if (i != 0 && i % 5 == 0) {
+      cout << rule << endl;
+    }
     show_row(grid[i], C);
   }
+  cout << endl;
 }
 
 void all_patterns_aux(vector<vector<status>> &patterns,
@@ -124,13 +132,12 @@ bool deduce_one(vector<status> &row, vector<vector<status>> &patterns, int N) {
 
 bool deduce(vector<vector<status>> &grid,
             vector<vector<vector<status>>> &patterns, int R, int C) {
-  bool modified = false;
   for (int i = 0; i < R; i++) {
     if (deduce_one(grid[i], patterns[i], C)) {
-      modified = true;
+      return true;
     }
   }
-  return modified;
+  return false;
 }
 
 vector<vector<status>> solve(const vector<vector<int>> &row_hints,
@@ -150,9 +157,15 @@ vector<vector<status>> solve(const vector<vector<int>> &row_hints,
 
   for (;;) {
     const bool row_modified = deduce(grid, row_patterns, R, C);
+    if (row_modified) {
+      show_grid(grid, R, C);
+    }
     transpose(grid);
     const bool col_modified = deduce(grid, col_patterns, C, R);
     transpose(grid);
+    if (col_modified) {
+      show_grid(grid, R, C);
+    }
     if (!row_modified && !col_modified) {
       break;
     }
@@ -188,8 +201,7 @@ int main() try {
     }
   }
 
-  const vector<vector<status>> grid = solve(row_hints, col_hints);
-  show_grid(grid, R, C);
+  solve(row_hints, col_hints);
 
   return 0;
 } catch (const contradict &) {
