@@ -22,6 +22,7 @@ class Renderer
     %title= fname
     %meta{name: 'twitter:card', content: 'photo'}
     %meta{name: 'twitter:title', content: fname}
+    %meta{name: 'twitter:description', content: fname}
     %meta{name: 'twitter:image', content: "#{URL_PREFIX}/#{fname}"}
     %meta{name: 'twitter:url', content: "#{URL_PREFIX}/#{fname}"}
     %meta{name: 'og:image', content: "#{URL_PREFIX}/#{fname}"}
