@@ -48,7 +48,7 @@ liberator.plugins.pixiv = (function() {
           tag: tags.map(function(t) encodeURIComponent(t)).join('+'),
           comment: comment,
         };
-        let q = [k + '=' + params[k] for (k in params)].join('&');
+        let q = Object.keys(params).map(k => k + '=' + params[k]).join('&');
 
         let req = new libly.Request('http://www.pixiv.net/bookmark_add.php', null, {postBody: q});
         req.addEventListener('onSuccess', next);
@@ -71,7 +71,7 @@ liberator.plugins.pixiv = (function() {
           type: 'user',
           restrict: '0',
         };
-        let q = [k + '=' + params[k] for (k in params)].join('&');
+        let q = Object.keys(params).map(k => k + '=' + params[k]).join('&');
         let req = new libly.Request('http://www.pixiv.net/bookmark_add.php', null, {postBody: q});
         req.addEventListener('onSuccess', next);
         req.post();
@@ -93,7 +93,7 @@ liberator.plugins.pixiv = (function() {
           'id%5B%5D': id,
           del: '%E3%80%80%E5%A4%96%E3%80%80%E3%81%99%E3%80%80',
         };
-        let q = [k + '=' + params[k] for (k in params)].join('&');
+        let q = Object.keys(params).map(k => k + '=' + params[k]).join('&');
         let req = new libly.Request('http://www.pixiv.net/bookmark_setting.php', null, {postBody: q});
         req.addEventListener('onSuccess', next);
         req.post();
@@ -149,7 +149,7 @@ liberator.plugins.pixiv = (function() {
         context.compare = void 0;
         if (tags_cache[url]) {
           context.title = ['tag (cached)'];
-          context.completions = [[t, ''] for each(t in tags_cache[url]) if (args.indexOf(t) == -1)];
+          context.completions = tags_cache[url].filter(t => args.indexOf(t) == -1).map(t => [t, '']);
         } else {
           let req = new libly.Request('http://www.pixiv.net/bookmark_add.php?type=illust&illust_id=' + id);
           req.addEventListener('onSuccess', function(res) {
@@ -171,7 +171,7 @@ liberator.plugins.pixiv = (function() {
 
             tags_cache[url] = tags;
             context.title = ['tag'];
-            context.completions = [[t, ''] for each(t in tags) if (args.indexOf(t) == -1)];
+            context.completions = tags.filter(t => args.indexOf(t) == -1).map(t => [t, '']);
           });
           req.get();
         }
