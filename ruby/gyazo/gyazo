@@ -33,7 +33,7 @@ HAML
 end
 
 def check_twitter_photo_card_properties!(path)
-  if path.size >= 1<<20
+  if ENV['IGNORE_TWITTER_CHECK'] != '1' && path.size >= 1<<20
     raise "#{path} must be less than 1MB"
   end
   true
