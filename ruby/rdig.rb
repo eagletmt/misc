@@ -62,11 +62,17 @@ def resolve_name(dns, name)
     end
   rescue Resolv::ResolvError
   end
-  dns.getresources(name, Resolv::DNS::Resource::IN::A).map do |a|
+  as = dns.getresources(name, Resolv::DNS::Resource::IN::A).map do |a|
     a.address.to_s.tap do |addr|
       puts "#{name} #{@rainbow.type('A')} #{@rainbow.addr(addr)}"
     end
   end
+  aaaas = dns.getresources(name, Resolv::DNS::Resource::IN::AAAA).map do |a|
+    a.address.to_s.tap do |addr|
+      puts "#{name} #{@rainbow.type('AAAA')} #{@rainbow.addr(addr)}"
+    end
+  end
+  as + aaaas
 end
 
 Resolv::DNS.open do |dns|
