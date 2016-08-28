@@ -13,6 +13,7 @@ ARGV.each do |host|
     context.verify_mode = OpenSSL::SSL::VERIFY_PEER
     context.set_params
     ssl_socket = OpenSSL::SSL::SSLSocket.new(socket, context)
+    ssl_socket.hostname = host
     ssl_socket.connect
     ssl_socket.post_connection_check(host)
 
