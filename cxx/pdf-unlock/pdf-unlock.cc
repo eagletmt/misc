@@ -1,11 +1,10 @@
+#include <cairo/cairo-pdf.h>
+#include <poppler.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <termios.h>
 #include <memory>
-#include <poppler/Error.h>
-#include <poppler.h>
-#include <cairo/cairo-pdf.h>
 
 static void read_password(char *buf, size_t n)
 {
@@ -30,10 +29,6 @@ static void read_password(char *buf, size_t n)
   }
 }
 
-static void ignore(void *, ErrorCategory, Goffset, char *)
-{
-}
-
 int main(int argc, char *argv[])
 {
   if (argc != 3 && argc != 4) {
@@ -44,10 +39,8 @@ int main(int argc, char *argv[])
   const char *inpath = argv[1];
   const char *outpath = argv[2];
 
-  // Suppress poppler's "Command Line Error"
-  setErrorCallback(ignore, NULL);
-
-  const std::unique_ptr<GFile, decltype(&g_object_unref)> infile(g_file_new_for_path(inpath), g_object_unref);
+  const std::unique_ptr<GFile, decltype(&g_object_unref)> infile(
+      g_file_new_for_path(inpath), g_object_unref);
   GError *err = NULL;
   std::unique_ptr<PopplerDocument, decltype(&g_object_unref)> doc(poppler_document_new_from_gfile(infile.get(), argc == 3 ? NULL : argv[3], NULL, &err), g_object_unref);
   if (!doc && err->code == POPPLER_ERROR_ENCRYPTED) {
