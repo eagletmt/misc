@@ -31,8 +31,8 @@ static void read_password(char *buf, size_t n)
 
 int main(int argc, char *argv[])
 {
-  if (argc != 3 && argc != 4) {
-    g_print("Usage: %s in-locked.pdf out-unlocked.pdf [password]\n", argv[0]);
+  if (argc != 3) {
+    g_print("Usage: %s in-locked.pdf out-unlocked.pdf\n", argv[0]);
     return 1;
   }
 
@@ -47,13 +47,14 @@ int main(int argc, char *argv[])
     g_clear_error(&err);
 
     char password[1024];
-    if (argc == 3) {
-      read_password(password, sizeof(password));
+    const gchar *env_password = g_getenv("PDF_UNLOCK_PASSWORD");
+    if (env_password != NULL) {
+      strncpy(password, env_password, sizeof(password)-1);
     } else {
-      strncpy(password, argv[3], sizeof(password)-1);
-      password[sizeof(password)-1] = '\0';
+      read_password(password, sizeof(password));
     }
-    doc.reset(poppler_document_new_from_gfile(infile.get(), password, NULL, &err));
+    doc.reset(
+        poppler_document_new_from_gfile(infile.get(), password, NULL, &err));
   }
   if (!doc) {
     g_print("%s(%d): %s\n", g_quark_to_string(err->domain), err->code, err->message);
