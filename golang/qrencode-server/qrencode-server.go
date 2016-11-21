@@ -80,6 +80,7 @@ func writeHtml(w http.ResponseWriter, r *http.Request) {
         });
       })();
     </script>
+    <p><a href="https://github.com/eagletmt/misc/tree/master/golang/qrencode-server">Source code</a>
   </body>
 </html>`
 	tmpl := template.Must(template.New("top").Parse(TOP_TEMPLATE))
