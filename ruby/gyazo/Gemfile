@@ -1,5 +1,0 @@
-source 'https://rubygems.org'
-
-gem 'faml'
-gem 'aws-sdk-core'
-gem 'denv'
