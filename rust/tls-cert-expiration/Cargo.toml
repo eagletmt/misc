@@ -1,0 +1,8 @@
+[package]
+name = "tls-cert-expiration"
+version = "0.1.0"
+authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
+
+[dependencies]
+openssl = "0.9"
+chrono = "0.3"
