@@ -18,13 +18,13 @@ fn main() {
         Ok(m) => { m }
         Err(msg) => {
             println!("{}", msg);
-            print_usage(&program, options);
+            print_usage(&program, &options);
             process::exit(1);
         }
     };
 
     if matches.opt_present("h") {
-        print_usage(&program, options);
+        print_usage(&program, &options);
         process::exit(0);
     }
 
@@ -32,7 +32,7 @@ fn main() {
     for label in matches.opt_strs("l") {
         labels.insert(label);
     }
-    match ltsv_select(labels, matches.free.get(0)) {
+    match ltsv_select(&labels, matches.free.get(0)) {
         Ok(_) => {}
         Err(msg) => {
             println!("{}", msg);
@@ -41,12 +41,12 @@ fn main() {
     }
 }
 
-fn print_usage(program: &str, options: getopts::Options) {
+fn print_usage(program: &str, options: &getopts::Options) {
     println!("{}", options.short_usage(&program));
     println!("{}", options.usage("Filter LTSV records."));
 }
 
-fn ltsv_select(labels: HashSet<String>, path: Option<&String>) -> io::Result<()> {
+fn ltsv_select(labels: &HashSet<String>, path: Option<&String>) -> io::Result<()> {
     match path {
         None => {
             let stdin = io::stdin();
@@ -60,13 +60,13 @@ fn ltsv_select(labels: HashSet<String>, path: Option<&String>) -> io::Result<()>
     }
 }
 
-fn ltsv_select2<R: BufRead>(labels: HashSet<String>, reader: R) -> io::Result<()> {
+fn ltsv_select2<R: BufRead>(labels: &HashSet<String>, reader: R) -> io::Result<()> {
     for line in reader.lines() {
         let line = try!(line);
         let mut record = LinkedList::new();
         for label_and_value in line.split('\t') {
             let xs: Vec<&str> = label_and_value.split(':').collect();
-            if xs.len() > 0 {
+            if !xs.is_empty() {
                 let label = xs[0];
                 if labels.is_empty() || labels.contains(label) {
                     record.push_back(label_and_value);
@@ -86,5 +86,5 @@ fn ltsv_select2<R: BufRead>(labels: HashSet<String>, reader: R) -> io::Result<()
         println!("");
     }
 
-    return Ok(());
+    Ok(())
 }
