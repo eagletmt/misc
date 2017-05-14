@@ -21,7 +21,9 @@ fn upload<P, D>(s3: &rusoto::s3::S3Client<P, D>, path: &std::path::Path)
     where P: rusoto::ProvideAwsCredentials,
           D: rusoto::DispatchSignedRequest
 {
-    if std::env::var("IGNORE_TWITTER_CHECK").map(|check| check != "1").unwrap_or(true) {
+    if std::env::var("IGNORE_TWITTER_CHECK")
+           .map(|check| check != "1")
+           .unwrap_or(true) {
         let size = std::fs::metadata(path).expect("std::fs::metadata").len();
         if size >= (1 << 20) {
             println!("{} is larger than 1MB", path.display());
@@ -40,7 +42,9 @@ fn upload<P, D>(s3: &rusoto::s3::S3Client<P, D>, path: &std::path::Path)
 
     let image_key = format!("{}.{}",
                             digest,
-                            path.extension().map(|ext| ext.to_str().unwrap()).unwrap_or(""));
+                            path.extension()
+                                .map(|ext| ext.to_str().unwrap())
+                                .unwrap_or(""));
     let content_type = path.extension().and_then(guess_content_type);
     let html = render_html(&digest, &image_key);
     println!("{} -> {}/{} (https://s3-{}.amazonaws.com/{}/{})",
@@ -51,24 +55,24 @@ fn upload<P, D>(s3: &rusoto::s3::S3Client<P, D>, path: &std::path::Path)
              BUCKET_NAME,
              digest);
     s3.put_object(&rusoto::s3::PutObjectRequest {
-            bucket: BUCKET_NAME.to_owned(),
-            acl: Some("public-read".to_owned()),
-            storage_class: Some("REDUCED_REDUNDANCY".to_owned()),
-            key: image_key,
-            body: Some(image),
-            content_type: content_type,
-            ..rusoto::s3::PutObjectRequest::default()
-        })
+                        bucket: BUCKET_NAME.to_owned(),
+                        acl: Some("public-read".to_owned()),
+                        storage_class: Some("REDUCED_REDUNDANCY".to_owned()),
+                        key: image_key,
+                        body: Some(image),
+                        content_type: content_type,
+                        ..rusoto::s3::PutObjectRequest::default()
+                    })
         .expect("s3.put_object (image)");
     s3.put_object(&rusoto::s3::PutObjectRequest {
-            bucket: BUCKET_NAME.to_owned(),
-            acl: Some("public-read".to_owned()),
-            storage_class: Some("REDUCED_REDUNDANCY".to_owned()),
-            key: digest,
-            body: Some(html.into_bytes()),
-            content_type: Some("text/html".to_owned()),
-            ..rusoto::s3::PutObjectRequest::default()
-        })
+                        bucket: BUCKET_NAME.to_owned(),
+                        acl: Some("public-read".to_owned()),
+                        storage_class: Some("REDUCED_REDUNDANCY".to_owned()),
+                        key: digest,
+                        body: Some(html.into_bytes()),
+                        content_type: Some("text/html".to_owned()),
+                        ..rusoto::s3::PutObjectRequest::default()
+                    })
         .expect("s3.put_object (html)");
 }
 
