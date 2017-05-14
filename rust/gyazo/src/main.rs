@@ -104,6 +104,8 @@ fn render_html(digest: &str, key: &str) -> String {
 fn guess_content_type(ext: &std::ffi::OsStr) -> Option<String> {
     if ext == "png" {
         Some("image/png".to_owned())
+    } else if ext == "jpg" {
+        Some("image/jpeg".to_owned())
     } else {
         None
     }
