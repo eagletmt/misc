@@ -23,17 +23,6 @@ where
     P: rusoto::ProvideAwsCredentials,
     D: rusoto::DispatchSignedRequest,
 {
-    if std::env::var("IGNORE_TWITTER_CHECK")
-        .map(|check| check != "1")
-        .unwrap_or(true)
-    {
-        let size = std::fs::metadata(path).expect("std::fs::metadata").len();
-        if size >= (1 << 20) {
-            println!("{} is larger than 1MB", path.display());
-            return;
-        }
-    }
-
     let mut file = std::fs::File::open(path).expect("std::fs::File::open");
     let mut image = Vec::new();
     use std::io::Read;
