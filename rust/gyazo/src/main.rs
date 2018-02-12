@@ -1,15 +1,15 @@
 extern crate crypto;
-extern crate rusoto;
+extern crate rusoto_core;
+extern crate rusoto_s3;
 
 const BUCKET_NAME: &'static str = "gyazo.wanko.cc";
 const URL_PREFIX: &'static str = "https://gyazo.wanko.cc";
-const REGION: rusoto::Region = rusoto::Region::ApNortheast1;
+const REGION: rusoto_core::Region = rusoto_core::Region::ApNortheast1;
 
 fn main() {
-
-    let s3 = rusoto::s3::S3Client::new(
-        rusoto::default_tls_client().expect("default_tls_client"),
-        rusoto::DefaultCredentialsProvider::new().expect("DefaultCredentialsProvider::new"),
+    let s3 = rusoto_s3::S3Client::new(
+        rusoto_core::default_tls_client().expect("default_tls_client"),
+        rusoto_core::DefaultCredentialsProvider::new().expect("DefaultCredentialsProvider::new"),
         REGION,
     );
 
@@ -18,10 +18,9 @@ fn main() {
     }
 }
 
-fn upload<P, D>(s3: &rusoto::s3::S3Client<P, D>, path: &std::path::Path)
+fn upload<S3>(s3: &S3, path: &std::path::Path)
 where
-    P: rusoto::ProvideAwsCredentials,
-    D: rusoto::DispatchSignedRequest,
+    S3: rusoto_s3::S3,
 {
     let mut file = std::fs::File::open(path).expect("std::fs::File::open");
     let mut image = Vec::new();
@@ -50,23 +49,23 @@ where
         BUCKET_NAME,
         digest
     );
-    s3.put_object(&rusoto::s3::PutObjectRequest {
+    s3.put_object(&rusoto_s3::PutObjectRequest {
         bucket: BUCKET_NAME.to_owned(),
         acl: Some("public-read".to_owned()),
         storage_class: Some("REDUCED_REDUNDANCY".to_owned()),
         key: image_key,
         body: Some(image),
         content_type: content_type,
-        ..rusoto::s3::PutObjectRequest::default()
+        ..rusoto_s3::PutObjectRequest::default()
     }).expect("s3.put_object (image)");
-    s3.put_object(&rusoto::s3::PutObjectRequest {
+    s3.put_object(&rusoto_s3::PutObjectRequest {
         bucket: BUCKET_NAME.to_owned(),
         acl: Some("public-read".to_owned()),
         storage_class: Some("REDUCED_REDUNDANCY".to_owned()),
         key: digest,
         body: Some(html.into_bytes()),
         content_type: Some("text/html".to_owned()),
-        ..rusoto::s3::PutObjectRequest::default()
+        ..rusoto_s3::PutObjectRequest::default()
     }).expect("s3.put_object (html)");
 }
 
@@ -78,7 +77,7 @@ fn render_html(digest: &str, key: &str) -> String {
     buf.push_str(digest);
     buf.push_str(
         "</title><meta name='twitter:card' content='photo'><meta name='twitter:title' \
-                  content='",
+         content='",
     );
     buf.push_str(key);
     buf.push_str("'><meta name='twitter:description' content='");

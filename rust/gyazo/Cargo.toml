@@ -4,5 +4,6 @@ version = "0.1.0"
 authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
 
 [dependencies]
-rusoto = { version = "0.23", features = ["s3"] }
+rusoto_core = "0.31"
+rusoto_s3 = "0.31"
 rust-crypto = "0.2"
