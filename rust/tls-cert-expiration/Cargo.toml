@@ -4,6 +4,6 @@ version = "0.1.0"
 authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
 
 [dependencies]
-chrono = "0.3"
+chrono = "0.4"
 getopts = "0.2"
-openssl = "0.9"
+openssl = "0.10"
