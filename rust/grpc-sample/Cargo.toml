@@ -1,0 +1,23 @@
+[package]
+name = "grpc-sample"
+version = "0.1.0"
+authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
+
+[build-dependencies]
+protoc-rust-grpc = "0.2.1"
+
+[dependencies]
+env_logger = "0.5.4"
+grpc = "0.2.1"
+libc = "0.2.37"
+lazy_static = "1.0.0"
+log = "0.4.1"
+nix = "0.10.0"
+protobuf = "1.4.3"
+tls-api = "0.1.14"
+
+[[bin]]
+name = "greeter_client"
+
+[[bin]]
+name = "greeter_server"
