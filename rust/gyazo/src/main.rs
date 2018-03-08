@@ -7,11 +7,7 @@ const URL_PREFIX: &'static str = "https://gyazo.wanko.cc";
 const REGION: rusoto_core::Region = rusoto_core::Region::ApNortheast1;
 
 fn main() {
-    let s3 = rusoto_s3::S3Client::new(
-        rusoto_core::default_tls_client().expect("default_tls_client"),
-        rusoto_core::DefaultCredentialsProvider::new().expect("DefaultCredentialsProvider::new"),
-        REGION,
-    );
+    let s3 = rusoto_s3::S3Client::simple(REGION);
 
     for arg in std::env::args().skip(1) {
         upload(&s3, std::path::Path::new(&arg));
@@ -49,7 +45,7 @@ where
         BUCKET_NAME,
         digest
     );
-    s3.put_object(&rusoto_s3::PutObjectRequest {
+    let put_image_future = s3.put_object(&rusoto_s3::PutObjectRequest {
         bucket: BUCKET_NAME.to_owned(),
         acl: Some("public-read".to_owned()),
         storage_class: Some("REDUCED_REDUNDANCY".to_owned()),
@@ -57,8 +53,8 @@ where
         body: Some(image),
         content_type: content_type,
         ..rusoto_s3::PutObjectRequest::default()
-    }).expect("s3.put_object (image)");
-    s3.put_object(&rusoto_s3::PutObjectRequest {
+    });
+    let put_html_future = s3.put_object(&rusoto_s3::PutObjectRequest {
         bucket: BUCKET_NAME.to_owned(),
         acl: Some("public-read".to_owned()),
         storage_class: Some("REDUCED_REDUNDANCY".to_owned()),
@@ -66,7 +62,9 @@ where
         body: Some(html.into_bytes()),
         content_type: Some("text/html".to_owned()),
         ..rusoto_s3::PutObjectRequest::default()
-    }).expect("s3.put_object (html)");
+    });
+    put_image_future.sync().expect("s3.put_object (html)");
+    put_html_future.sync().expect("s3.put_object (image)");
 }
 
 fn render_html(digest: &str, key: &str) -> String {
