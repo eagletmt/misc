@@ -5,3 +5,4 @@ authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
 
 [dependencies]
 resolv = "0.1.3"
+ansi_term = "0.11.0"

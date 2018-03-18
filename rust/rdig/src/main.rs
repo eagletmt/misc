@@ -1,3 +1,4 @@
+extern crate ansi_term;
 extern crate resolv;
 
 fn main() {
@@ -9,10 +10,20 @@ fn main() {
 }
 
 fn resolve_name(resolver: &mut resolv::Resolver, name: String) {
+    let type_style = ansi_term::Style::new().fg(ansi_term::Color::Yellow);
+    let name_style = ansi_term::Style::new().fg(ansi_term::Color::Green);
+    let addr_style = ansi_term::Style::new().fg(ansi_term::Color::Blue);
+
     if let Ok(mut resp) = resolver.query(name.as_bytes(), resolv::Class::IN, resolv::RecordType::MX)
     {
         for mx in resp.answers::<resolv::record::MX>() {
-            println!("{} MX {} {}", name, mx.data.exchange, mx.data.preference);
+            println!(
+                "{} {} {} {}",
+                name,
+                type_style.paint("MX"),
+                name_style.paint(mx.data.exchange),
+                mx.data.preference
+            );
         }
     }
 
@@ -20,7 +31,7 @@ fn resolve_name(resolver: &mut resolv::Resolver, name: String) {
         resolver.query(name.as_bytes(), resolv::Class::IN, resolv::RecordType::TXT)
     {
         for txt in resp.answers::<resolv::record::TXT>() {
-            println!("{} TXT {}", name, txt.data.dname);
+            println!("{} {} {}", name, type_style.paint("TXT"), txt.data.dname);
         }
     }
 
@@ -34,7 +45,12 @@ fn resolve_name(resolver: &mut resolv::Resolver, name: String) {
         ) {
             for cname in resp.answers::<resolv::record::CNAME>() {
                 resolved = true;
-                println!("{} CNAME {}", name, cname.data.cname);
+                println!(
+                    "{} {} {}",
+                    name,
+                    type_style.paint("TXT"),
+                    name_style.paint(&*cname.data.cname)
+                );
                 name = cname.data.cname;
             }
         }
@@ -49,7 +65,12 @@ fn resolve_name(resolver: &mut resolv::Resolver, name: String) {
     {
         for a in resp.answers::<resolv::record::A>() {
             let addr = a.data.address.to_string();
-            println!("{} A {}", name, addr);
+            println!(
+                "{} {} {}",
+                name,
+                type_style.paint("A"),
+                addr_style.paint(&*addr)
+            );
             let octets = a.data.address.octets();
             addrs.push((
                 addr,
@@ -66,7 +87,12 @@ fn resolve_name(resolver: &mut resolv::Resolver, name: String) {
     {
         for aaaa in resp.answers::<resolv::record::AAAA>() {
             let addr = aaaa.data.address.to_string();
-            println!("{} AAAA {}", name, addr);
+            println!(
+                "{} {} {}",
+                name,
+                type_style.paint("AAAA"),
+                addr_style.paint(&*addr)
+            );
             let segments = aaaa.data.address.segments();
             let mut buf = String::new();
             for i in 0..8 {
@@ -90,9 +116,21 @@ fn resolve_name(resolver: &mut resolv::Resolver, name: String) {
         ) {
             for ptr in resp.answers::<resolv::record::PTR>() {
                 {
-                    println!("{} PTR {}", addr, ptr.data.dname);
+                    println!(
+                        "{} {} {}",
+                        addr,
+                        type_style.paint("PTR"),
+                        name_style.paint(ptr.data.dname)
+                    );
                 }
             }
+        } else {
+            println!(
+                "{} {} {}",
+                addr,
+                type_style.paint("PTR"),
+                ansi_term::Color::Red.paint("NONE")
+            );
         }
     }
 }
