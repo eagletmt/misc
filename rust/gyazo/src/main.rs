@@ -2,8 +2,8 @@ extern crate crypto;
 extern crate rusoto_core;
 extern crate rusoto_s3;
 
-const BUCKET_NAME: &'static str = "gyazo.wanko.cc";
-const URL_PREFIX: &'static str = "https://gyazo.wanko.cc";
+const BUCKET_NAME: &str = "gyazo.wanko.cc";
+const URL_PREFIX: &str = "https://gyazo.wanko.cc";
 const REGION: rusoto_core::Region = rusoto_core::Region::ApNortheast1;
 
 fn main() {
@@ -51,7 +51,7 @@ where
         storage_class: Some("REDUCED_REDUNDANCY".to_owned()),
         key: image_key,
         body: Some(image),
-        content_type: content_type,
+        content_type,
         ..rusoto_s3::PutObjectRequest::default()
     });
     let put_html_future = s3.put_object(&rusoto_s3::PutObjectRequest {

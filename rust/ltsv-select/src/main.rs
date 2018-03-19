@@ -5,7 +5,7 @@ use std::io;
 use std::io::BufRead;
 use std::process;
 use std::fs::File;
-use std::collections::{HashSet,LinkedList};
+use std::collections::{HashSet, LinkedList};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -15,7 +15,7 @@ fn main() {
     options.optmulti("l", "label", "Select this label", "LABEL");
     options.optflag("h", "help", "Print help");
     let matches = match options.parse(&args[1..]) {
-        Ok(m) => { m }
+        Ok(m) => m,
         Err(msg) => {
             println!("{}", msg);
             print_usage(&program, &options);
@@ -42,7 +42,7 @@ fn main() {
 }
 
 fn print_usage(program: &str, options: &getopts::Options) {
-    println!("{}", options.short_usage(&program));
+    println!("{}", options.short_usage(program));
     println!("{}", options.usage("Filter LTSV records."));
 }
 
@@ -83,7 +83,7 @@ fn ltsv_select2<R: BufRead>(labels: &HashSet<String>, reader: R) -> io::Result<(
             }
             first = false;
         }
-        println!("");
+        println!();
     }
 
     Ok(())

@@ -3,8 +3,6 @@ extern crate getopts;
 extern crate openssl;
 
 fn main() {
-    use std::io::Write;
-
     let mut args = std::env::args();
     let program = args.next().unwrap();
 
@@ -13,7 +11,7 @@ fn main() {
     let mut matches = match options.parse(args) {
         Ok(m) => m,
         Err(msg) => {
-            writeln!(std::io::stderr(), "{}", msg).unwrap();
+            eprintln!("{}", msg);
             print_usage(&program, &options);
             std::process::exit(1);
         }
@@ -52,7 +50,7 @@ fn main() {
 }
 
 fn print_usage(program: &str, options: &getopts::Options) {
-    println!("{}", options.short_usage(&program));
+    println!("{}", options.short_usage(program));
     println!("{}", options.usage("Check TLS certificate expiration"));
 }
 

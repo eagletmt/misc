@@ -11,10 +11,8 @@ struct DiscoveryData {
 
 #[derive(Debug, Serialize)]
 struct DiscoveryEntry {
-    #[serde(rename = "{#DEVICE_NAME}")]
-    device_name: String,
-    #[serde(rename = "{#SENSOR_NAME}")]
-    sensor_name: String,
+    #[serde(rename = "{#DEVICE_NAME}")] device_name: String,
+    #[serde(rename = "{#SENSOR_NAME}")] sensor_name: String,
 }
 
 fn main() {
@@ -26,9 +24,8 @@ fn main() {
         let pathbuf = entry.path();
         if let Ok(mut file) = std::fs::File::open(pathbuf.join("name")) {
             let mut buf = String::new();
-            file.read_to_string(&mut buf).expect(
-                "Failed to read name file",
-            );
+            file.read_to_string(&mut buf)
+                .expect("Failed to read name file");
             let name = buf.trim();
 
             for entry in std::fs::read_dir(pathbuf).expect("Failed to read hwmon directory") {
@@ -36,8 +33,8 @@ fn main() {
                 let path = entry.path();
                 let filename = path.file_name().unwrap().to_string_lossy();
                 const SUFFIX: &str = "_input";
-                if filename.ends_with(SUFFIX) &&
-                    entry.file_type().expect("Failed to get filetype").is_file()
+                if filename.ends_with(SUFFIX)
+                    && entry.file_type().expect("Failed to get filetype").is_file()
                 {
                     data.push(DiscoveryEntry {
                         device_name: name.to_owned(),
@@ -47,7 +44,7 @@ fn main() {
             }
         }
     }
-    serde_json::to_writer_pretty(std::io::stdout(), &DiscoveryData { data: data })
+    serde_json::to_writer_pretty(std::io::stdout(), &DiscoveryData { data })
         .expect("Failed to write JSON");
-    println!("");
+    println!();
 }
