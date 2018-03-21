@@ -48,7 +48,7 @@ fn resolve_name(resolver: &mut resolv::Resolver, name: String) {
                 println!(
                     "{} {} {}",
                     name,
-                    type_style.paint("TXT"),
+                    type_style.paint("CNAME"),
                     name_style.paint(&*cname.data.cname)
                 );
                 name = cname.data.cname;
