@@ -1,0 +1,11 @@
+[package]
+name = "aikatsumap"
+version = "0.1.0"
+authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
+
+[dependencies]
+reqwest = "0.8.5"
+url = "1.7.0"
+log = "0.4.1"
+env_logger = "0.5.6"
+kuchiki = "0.7.0"
