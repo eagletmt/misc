@@ -1,4 +1,5 @@
 extern crate crypto;
+extern crate futures;
 extern crate rusoto_core;
 extern crate rusoto_s3;
 
@@ -7,7 +8,7 @@ const URL_PREFIX: &str = "https://gyazo.wanko.cc";
 const REGION: rusoto_core::Region = rusoto_core::Region::ApNortheast1;
 
 fn main() {
-    let s3 = rusoto_s3::S3Client::simple(REGION);
+    let s3 = rusoto_s3::S3Client::new(REGION);
 
     for arg in std::env::args().skip(1) {
         upload(&s3, std::path::Path::new(&arg));
@@ -35,33 +36,35 @@ where
             .unwrap_or("")
     );
     let content_type = path.extension().and_then(guess_content_type);
-    let html = render_html(&digest, &image_key);
+    let html = render_html(&digest, &image_key).into_bytes();
     println!(
         "{} -> {}/{} (https://s3-{}.amazonaws.com/{}/{})",
         path.display(),
         URL_PREFIX,
         digest,
-        REGION,
+        REGION.name(),
         BUCKET_NAME,
         digest
     );
-    let put_image_future = s3.put_object(&rusoto_s3::PutObjectRequest {
+    let put_image_future = s3.put_object(rusoto_s3::PutObjectRequest {
         bucket: BUCKET_NAME.to_owned(),
         acl: Some("public-read".to_owned()),
         storage_class: Some("REDUCED_REDUNDANCY".to_owned()),
         key: image_key,
-        body: Some(image),
+        content_length: Some(image.len() as i64),
+        body: Some(rusoto_s3::StreamingBody::new(futures::stream::iter_ok(vec![image]))),
         content_type,
-        ..rusoto_s3::PutObjectRequest::default()
+        ..Default::default()
     });
-    let put_html_future = s3.put_object(&rusoto_s3::PutObjectRequest {
+    let put_html_future = s3.put_object(rusoto_s3::PutObjectRequest {
         bucket: BUCKET_NAME.to_owned(),
         acl: Some("public-read".to_owned()),
         storage_class: Some("REDUCED_REDUNDANCY".to_owned()),
         key: digest,
-        body: Some(html.into_bytes()),
+        content_length: Some(html.len() as i64),
+        body: Some(rusoto_s3::StreamingBody::new(futures::stream::iter_ok(vec![html]))),
         content_type: Some("text/html".to_owned()),
-        ..rusoto_s3::PutObjectRequest::default()
+        ..Default::default()
     });
     put_image_future.sync().expect("s3.put_object (html)");
     put_html_future.sync().expect("s3.put_object (image)");
