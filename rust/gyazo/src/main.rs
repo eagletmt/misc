@@ -1,5 +1,4 @@
 extern crate crypto;
-extern crate futures;
 extern crate rusoto_core;
 extern crate rusoto_s3;
 
@@ -52,7 +51,7 @@ where
         storage_class: Some("REDUCED_REDUNDANCY".to_owned()),
         key: image_key,
         content_length: Some(image.len() as i64),
-        body: Some(rusoto_s3::StreamingBody::new(futures::stream::iter_ok(vec![image]))),
+        body: Some(image.into()),
         content_type,
         ..Default::default()
     });
@@ -62,7 +61,7 @@ where
         storage_class: Some("REDUCED_REDUNDANCY".to_owned()),
         key: digest,
         content_length: Some(html.len() as i64),
-        body: Some(rusoto_s3::StreamingBody::new(futures::stream::iter_ok(vec![html]))),
+        body: Some(html.into()),
         content_type: Some("text/html".to_owned()),
         ..Default::default()
     });
