@@ -1,7 +1,3 @@
-extern crate chrono;
-extern crate getopts;
-extern crate openssl;
-
 fn main() {
     let mut args = std::env::args();
     let program = args.next().unwrap();
