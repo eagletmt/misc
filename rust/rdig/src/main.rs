@@ -1,6 +1,3 @@
-extern crate ansi_term;
-extern crate resolv;
-
 fn main() {
     let mut resolver = resolv::Resolver::new().expect("Failed to initialize libresolv");
 
