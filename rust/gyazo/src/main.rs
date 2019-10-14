@@ -1,7 +1,3 @@
-extern crate crypto;
-extern crate rusoto_core;
-extern crate rusoto_s3;
-
 const BUCKET_NAME: &str = "gyazo.wanko.cc";
 const URL_PREFIX: &str = "https://gyazo.wanko.cc";
 const REGION: rusoto_core::Region = rusoto_core::Region::ApNortheast1;

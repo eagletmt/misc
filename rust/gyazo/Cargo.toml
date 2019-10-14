@@ -2,8 +2,9 @@
 name = "gyazo"
 version = "0.1.0"
 authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
+edition = "2018"
 
 [dependencies]
-rusoto_core = "0.34"
-rusoto_s3 = "0.34"
+rusoto_core = { version = "0.41", default-features = false, features = ["rustls"] }
+rusoto_s3 = { version = "0.41", default-features = false, features = ["rustls"] }
 rust-crypto = "0.2"
