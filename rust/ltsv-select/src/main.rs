@@ -1,14 +1,5 @@
-extern crate getopts;
-
-use std::env;
-use std::io;
-use std::io::BufRead;
-use std::process;
-use std::fs::File;
-use std::collections::{HashSet, LinkedList};
-
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    let args: Vec<String> = std::env::args().collect();
     let program = args[0].clone();
 
     let mut options = getopts::Options::new();
@@ -19,16 +10,16 @@ fn main() {
         Err(msg) => {
             println!("{}", msg);
             print_usage(&program, &options);
-            process::exit(1);
+            std::process::exit(1);
         }
     };
 
     if matches.opt_present("h") {
         print_usage(&program, &options);
-        process::exit(0);
+        std::process::exit(0);
     }
 
-    let mut labels = HashSet::new();
+    let mut labels = std::collections::HashSet::new();
     for label in matches.opt_strs("l") {
         labels.insert(label);
     }
@@ -36,7 +27,7 @@ fn main() {
         Ok(_) => {}
         Err(msg) => {
             println!("{}", msg);
-            process::exit(2);
+            std::process::exit(2);
         }
     }
 }
@@ -46,24 +37,30 @@ fn print_usage(program: &str, options: &getopts::Options) {
     println!("{}", options.usage("Filter LTSV records."));
 }
 
-fn ltsv_select(labels: &HashSet<String>, path: Option<&String>) -> io::Result<()> {
+fn ltsv_select(
+    labels: &std::collections::HashSet<String>,
+    path: Option<&String>,
+) -> std::io::Result<()> {
     match path {
         None => {
-            let stdin = io::stdin();
+            let stdin = std::io::stdin();
             let lock = stdin.lock();
             ltsv_select2(labels, lock)
         }
         Some(path) => {
-            let file = try!(File::open(path));
-            ltsv_select2(labels, io::BufReader::new(file))
+            let file = std::fs::File::open(path)?;
+            ltsv_select2(labels, std::io::BufReader::new(file))
         }
     }
 }
 
-fn ltsv_select2<R: BufRead>(labels: &HashSet<String>, reader: R) -> io::Result<()> {
+fn ltsv_select2<R: std::io::BufRead>(
+    labels: &std::collections::HashSet<String>,
+    reader: R,
+) -> std::io::Result<()> {
     for line in reader.lines() {
-        let line = try!(line);
-        let mut record = LinkedList::new();
+        let line = line?;
+        let mut record = std::collections::LinkedList::new();
         for label_and_value in line.split('\t') {
             let xs: Vec<&str> = label_and_value.split(':').collect();
             if !xs.is_empty() {

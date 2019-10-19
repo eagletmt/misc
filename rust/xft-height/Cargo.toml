@@ -2,6 +2,7 @@
 name = "xft-height"
 version = "0.1.0"
 authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
+edition = "2018"
 
 [dependencies]
-x11-dl = "2.17.0"
+x11-dl = "2.17"

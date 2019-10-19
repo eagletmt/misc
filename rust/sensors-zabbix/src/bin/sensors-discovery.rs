@@ -1,18 +1,14 @@
-extern crate serde;
-extern crate serde_json;
-
-#[macro_use]
-extern crate serde_derive;
-
-#[derive(Debug, Serialize)]
+#[derive(Debug, serde::Serialize)]
 struct DiscoveryData {
     data: Vec<DiscoveryEntry>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, serde::Serialize)]
 struct DiscoveryEntry {
-    #[serde(rename = "{#DEVICE_NAME}")] device_name: String,
-    #[serde(rename = "{#SENSOR_NAME}")] sensor_name: String,
+    #[serde(rename = "{#DEVICE_NAME}")]
+    device_name: String,
+    #[serde(rename = "{#SENSOR_NAME}")]
+    sensor_name: String,
 }
 
 fn main() {

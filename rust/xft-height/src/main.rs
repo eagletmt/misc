@@ -1,5 +1,3 @@
-extern crate x11_dl;
-
 fn main() {
     let xlib = x11_dl::xlib::Xlib::open().expect("Unable to load xlib");
     let xft = x11_dl::xft::Xft::open().expect("Unable to load xft");
