@@ -1,54 +1,56 @@
-fn main() {
-    let mut resolver = resolv::Resolver::new().expect("Failed to initialize libresolv");
+fn main() -> Result<(), failure::Error> {
+    let mut resolver = trust_dns_resolver::Resolver::default()?;
 
     for arg in std::env::args().skip(1) {
         resolve_name(&mut resolver, arg);
     }
+    Ok(())
 }
 
-fn resolve_name(resolver: &mut resolv::Resolver, name: String) {
+fn resolve_name(resolver: &mut trust_dns_resolver::Resolver, name: String) {
     let type_style = ansi_term::Style::new().fg(ansi_term::Color::Yellow);
     let name_style = ansi_term::Style::new().fg(ansi_term::Color::Green);
     let addr_style = ansi_term::Style::new().fg(ansi_term::Color::Blue);
 
-    if let Ok(mut resp) = resolver.query(name.as_bytes(), resolv::Class::IN, resolv::RecordType::MX)
-    {
-        for mx in resp.answers::<resolv::record::MX>() {
+    if let Ok(resp) = resolver.mx_lookup(&name) {
+        for mx in resp {
             println!(
                 "{} {} {} {}",
                 name,
                 type_style.paint("MX"),
-                name_style.paint(mx.data.exchange),
-                mx.data.preference
+                name_style.paint(mx.exchange().to_utf8()),
+                mx.preference()
             );
         }
     }
 
-    if let Ok(mut resp) =
-        resolver.query(name.as_bytes(), resolv::Class::IN, resolv::RecordType::TXT)
-    {
-        for txt in resp.answers::<resolv::record::TXT>() {
-            println!("{} {} {}", name, type_style.paint("TXT"), txt.data.dname);
+    if let Ok(resp) = resolver.txt_lookup(&name) {
+        for txt in resp {
+            for data in txt.txt_data() {
+                println!(
+                    "{} {} {:?}",
+                    name,
+                    type_style.paint("TXT"),
+                    String::from_utf8_lossy(&data),
+                );
+            }
         }
     }
 
     let mut name = name;
     loop {
         let mut resolved = false;
-        if let Ok(mut resp) = resolver.query(
-            name.as_bytes(),
-            resolv::Class::IN,
-            resolv::RecordType::CNAME,
-        ) {
-            for cname in resp.answers::<resolv::record::CNAME>() {
+        if let Ok(resp) = resolver.lookup(&name, trust_dns_proto::rr::RecordType::CNAME) {
+            for cname in resp {
                 resolved = true;
+                let next_name = cname.as_cname().unwrap().to_string();
                 println!(
                     "{} {} {}",
                     name,
                     type_style.paint("CNAME"),
-                    name_style.paint(&*cname.data.cname)
+                    name_style.paint(&next_name)
                 );
-                name = cname.data.cname;
+                name = next_name;
             }
         }
         if !resolved {
@@ -58,66 +60,39 @@ fn resolve_name(resolver: &mut resolv::Resolver, name: String) {
     let name = name;
 
     let mut addrs = Vec::new();
-    if let Ok(mut resp) = resolver.query(name.as_bytes(), resolv::Class::IN, resolv::RecordType::A)
-    {
-        for a in resp.answers::<resolv::record::A>() {
-            let addr = a.data.address.to_string();
+    if let Ok(resp) = resolver.ipv4_lookup(&name) {
+        for a in resp {
             println!(
                 "{} {} {}",
                 name,
                 type_style.paint("A"),
-                addr_style.paint(&*addr)
+                addr_style.paint(a.to_string())
             );
-            let octets = a.data.address.octets();
-            addrs.push((
-                addr,
-                format!(
-                    "{}.{}.{}.{}.in-addr.arpa",
-                    octets[3], octets[2], octets[1], octets[0]
-                ),
-            ));
+            addrs.push(std::net::IpAddr::from(a));
         }
     }
 
-    if let Ok(mut resp) =
-        resolver.query(name.as_bytes(), resolv::Class::IN, resolv::RecordType::AAAA)
-    {
-        for aaaa in resp.answers::<resolv::record::AAAA>() {
-            let addr = aaaa.data.address.to_string();
+    if let Ok(resp) = resolver.ipv6_lookup(&name) {
+        for aaaa in resp {
             println!(
                 "{} {} {}",
                 name,
                 type_style.paint("AAAA"),
-                addr_style.paint(&*addr)
+                addr_style.paint(aaaa.to_string())
             );
-            let segments = aaaa.data.address.segments();
-            let mut buf = String::new();
-            for i in 0..8 {
-                let mut seg = segments[7 - i];
-                for _ in 0..4 {
-                    use std::fmt::Write;
-                    write!(&mut buf, "{:x}.", seg % 16).unwrap();
-                    seg /= 16;
-                }
-            }
-            buf.push_str("ip6.arpa");
-            addrs.push((addr, buf));
+            addrs.push(std::net::IpAddr::from(aaaa));
         }
     }
 
-    for (addr, rev_addr) in addrs {
-        if let Ok(mut resp) = resolver.query(
-            rev_addr.as_bytes(),
-            resolv::Class::IN,
-            resolv::RecordType::PTR,
-        ) {
-            for ptr in resp.answers::<resolv::record::PTR>() {
+    for addr in addrs {
+        if let Ok(resp) = resolver.reverse_lookup(addr) {
+            for ptr in resp {
                 {
                     println!(
                         "{} {} {}",
                         addr,
                         type_style.paint("PTR"),
-                        name_style.paint(ptr.data.dname)
+                        name_style.paint(ptr.to_string())
                     );
                 }
             }
