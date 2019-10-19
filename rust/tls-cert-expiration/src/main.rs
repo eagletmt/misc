@@ -1,4 +1,4 @@
-fn main() {
+fn main() -> Result<(), failure::Error> {
     let mut args = std::env::args();
     let program = args.next().unwrap();
 
@@ -21,26 +21,39 @@ fn main() {
     };
     let port = matches.opt_str("p").map_or(443, |v| v.parse().unwrap());
 
-    let threshold = chrono::Local::now() + chrono::Duration::days(30);
-
-    let connector = openssl::ssl::SslConnector::builder(openssl::ssl::SslMethod::tls())
-        .expect("SslConnector::builder failed")
-        .build();
-    let tcp_stream =
-        std::net::TcpStream::connect((&*host, port)).expect("TcpStream::connect failed");
-    let tls_stream = connector
-        .connect(&*host, tcp_stream)
-        .expect("SslConnector::connect failed");
-    let cert = tls_stream
-        .ssl()
-        .peer_certificate()
-        .expect("No peer_certificate");
-    let not_after = from_asn1_time(cert.not_after()).expect("Unable to parse not_after");
-    let not_before = from_asn1_time(cert.not_before()).expect("Unable to parse not_before");
+    let mut tcp_stream = std::net::TcpStream::connect((&*host, port))?;
+    let dns_name = webpki::DNSNameRef::try_from_ascii_str(&host)?;
+    let mut config = rustls::ClientConfig::new();
+    {
+        let file = std::fs::File::open("/etc/ssl/certs/ca-certificates.crt")?;
+        let mut reader = std::io::BufReader::new(file);
+        config.root_store.add_pem_file(&mut reader).unwrap();
+    }
+    let mut client_session = rustls::ClientSession::new(&std::sync::Arc::new(config), dns_name);
+    use rustls::Session;
+    while client_session.wants_write() {
+        client_session.write_tls(&mut tcp_stream)?;
+    }
+    while client_session.wants_read() && client_session.get_peer_certificates().is_none() {
+        client_session.read_tls(&mut tcp_stream)?;
+        client_session.process_new_packets()?;
+    }
+    let certs = client_session.get_peer_certificates().unwrap();
+    let (_, cert) =
+        x509_parser::parse_x509_der(certs[0].as_ref()).expect("Failed to parse peer certificate");
     println!("{}", host);
-    println!("    {}", not_before);
-    println!("    {}", not_after);
-    let rc = if not_after <= threshold { 1 } else { 0 };
+    println!("    {}", cert.tbs_certificate.validity.not_before.rfc3339());
+    println!("    {}", cert.tbs_certificate.validity.not_after.rfc3339());
+    let duration = cert
+        .tbs_certificate
+        .validity
+        .time_to_expiration()
+        .expect("time_to_expiration failed");
+    let rc = if duration <= std::time::Duration::from_secs(30 * 24 * 60 * 60) {
+        1
+    } else {
+        0
+    };
 
     std::process::exit(rc);
 }
@@ -48,11 +61,4 @@ fn main() {
 fn print_usage(program: &str, options: &getopts::Options) {
     println!("{}", options.short_usage(program));
     println!("{}", options.usage("Check TLS certificate expiration"));
-}
-
-fn from_asn1_time(
-    t: &openssl::asn1::Asn1TimeRef,
-) -> Result<chrono::DateTime<chrono::Local>, chrono::ParseError> {
-    chrono::DateTime::parse_from_str(&t.to_string().replace(" GMT", " +00:00"), "%b %e %T %Y %z")
-        .map(|in_utc| in_utc.with_timezone(&chrono::Local))
 }

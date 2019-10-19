@@ -6,5 +6,8 @@ edition = "2018"
 
 [dependencies]
 chrono = "0.4"
+failure = "0.1"
 getopts = "0.2"
-openssl = "0.10"
+rustls = "0.16"
+webpki = "0.21"
+x509-parser = "0.6"
