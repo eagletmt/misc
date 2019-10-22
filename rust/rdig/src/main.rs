@@ -13,7 +13,13 @@ fn resolve_name(resolver: &mut trust_dns_resolver::Resolver, name: String) {
     let addr_style = ansi_term::Style::new().fg(ansi_term::Color::Blue);
 
     if let Ok(resp) = resolver.mx_lookup(&name) {
-        for mx in resp {
+        let mut records: Vec<_> = resp.into_iter().collect();
+        records.sort_unstable_by(|x, y| {
+            x.preference()
+                .cmp(&y.preference())
+                .then_with(|| x.exchange().cmp(y.exchange()))
+        });
+        for mx in records {
             println!(
                 "{} {} {} {}",
                 name,
