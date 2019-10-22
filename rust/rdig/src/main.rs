@@ -40,7 +40,7 @@ fn resolve_name(resolver: &mut trust_dns_resolver::Resolver, name: String) {
     let mut name = name;
     loop {
         let mut resolved = false;
-        if let Ok(resp) = resolver.lookup(&name, trust_dns_proto::rr::RecordType::CNAME) {
+        if let Ok(resp) = resolver.lookup(&name, trust_dns_resolver::proto::rr::RecordType::CNAME) {
             for cname in resp {
                 resolved = true;
                 let next_name = cname.as_cname().unwrap().to_string();
