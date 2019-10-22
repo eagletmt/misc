@@ -43,6 +43,52 @@ fn resolve_name(resolver: &mut trust_dns_resolver::Resolver, name: String) {
         }
     }
 
+    if let Ok(resp) = resolver.lookup(&name, trust_dns_resolver::proto::rr::RecordType::CAA) {
+        for rdata in resp {
+            let caa = rdata.as_caa().unwrap();
+            use trust_dns_resolver::proto::rr::rdata::caa::{Property, Value};
+            match (caa.tag(), caa.value()) {
+                (Property::Issue, Value::Issuer(Some(domain), _)) => {
+                    println!(
+                        "{} {} issue {} (critical={})",
+                        name,
+                        type_style.paint("CAA"),
+                        name_style.paint(domain.to_utf8()),
+                        caa.issuer_critical()
+                    );
+                }
+                (Property::IssueWild, Value::Issuer(Some(domain), _)) => {
+                    println!(
+                        "{} {} issuewild {} (critical={})",
+                        name,
+                        type_style.paint("CAA"),
+                        name_style.paint(domain.to_utf8()),
+                        caa.issuer_critical()
+                    );
+                }
+                (Property::Iodef, Value::Url(url)) => {
+                    println!(
+                        "{} {} iodef {} (critical={})",
+                        name,
+                        type_style.paint("CAA"),
+                        name_style.paint(url.as_str()),
+                        caa.issuer_critical()
+                    );
+                }
+                (tag, value) => {
+                    println!(
+                        "{} {} {:?} {:?} (critical={})",
+                        name,
+                        type_style.paint("CAA"),
+                        tag,
+                        value,
+                        caa.issuer_critical()
+                    );
+                }
+            }
+        }
+    }
+
     let mut name = name;
     loop {
         let mut resolved = false;
