@@ -34,7 +34,7 @@ fn resolve_name(resolver: &mut trust_dns_resolver::Resolver, name: String) {
         for txt in resp {
             for data in txt.txt_data() {
                 println!(
-                    "{} {} {:?}",
+                    "{} {} {}",
                     name,
                     type_style.paint("TXT"),
                     String::from_utf8_lossy(&data),
