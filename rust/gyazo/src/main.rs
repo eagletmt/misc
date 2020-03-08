@@ -2,15 +2,16 @@ const BUCKET_NAME: &str = "gyazo.wanko.cc";
 const URL_PREFIX: &str = "https://gyazo.wanko.cc";
 const REGION: rusoto_core::Region = rusoto_core::Region::ApNortheast1;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let s3 = rusoto_s3::S3Client::new(REGION);
 
     for arg in std::env::args().skip(1) {
-        upload(&s3, std::path::Path::new(&arg));
+        upload(&s3, std::path::Path::new(&arg)).await;
     }
 }
 
-fn upload<S3>(s3: &S3, path: &std::path::Path)
+async fn upload<S3>(s3: &S3, path: &std::path::Path)
 where
     S3: rusoto_s3::S3,
 {
@@ -61,8 +62,9 @@ where
         content_type: Some("text/html".to_owned()),
         ..Default::default()
     });
-    put_image_future.sync().expect("s3.put_object (html)");
-    put_html_future.sync().expect("s3.put_object (image)");
+    let (put_image_result, put_html_result) = futures::join!(put_image_future, put_html_future);
+    put_image_result.expect("s3.put_object (html)");
+    put_html_result.expect("s3.put_object (image)");
 }
 
 fn render_html(digest: &str, key: &str) -> String {
