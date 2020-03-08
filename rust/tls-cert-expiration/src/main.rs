@@ -24,11 +24,7 @@ fn main() -> Result<(), failure::Error> {
     let mut tcp_stream = std::net::TcpStream::connect((&*host, port))?;
     let dns_name = webpki::DNSNameRef::try_from_ascii_str(&host)?;
     let mut config = rustls::ClientConfig::new();
-    {
-        let file = std::fs::File::open("/etc/ssl/certs/ca-certificates.crt")?;
-        let mut reader = std::io::BufReader::new(file);
-        config.root_store.add_pem_file(&mut reader).unwrap();
-    }
+    config.root_store = rustls_native_certs::load_native_certs().expect("Failed to load local certificates");
     let mut client_session = rustls::ClientSession::new(&std::sync::Arc::new(config), dns_name);
     use rustls::Session;
     while client_session.wants_write() {
