@@ -6,5 +6,5 @@ edition = "2018"
 
 [dependencies]
 ansi_term = "0.12"
-trust-dns-resolver = "0.12"
+trust-dns-resolver = "0.19"
 failure = "0.1"
