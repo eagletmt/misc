@@ -22,6 +22,21 @@ impl grpc_sample::hello::greeter_server::Greeter for MyGreeter {
     }
 }
 
+async fn shutdown_signal() {
+    let mut int_stream = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::interrupt())
+        .expect("Failed to install SIGINT handler");
+    let mut term_stream = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+        .expect("Failed to install SIGTERM handler");
+    tokio::select! {
+        _ = int_stream.recv() => {
+            println!("Received SIGINT");
+        }
+        _ = term_stream.recv() => {
+            println!("Received SIGTERM");
+        }
+    };
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = "0.0.0.0:5000".parse().unwrap();
@@ -31,8 +46,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_service(grpc_sample::hello::greeter_server::GreeterServer::new(
             greeter,
         ))
-        .serve(addr)
+        .serve_with_shutdown(addr, shutdown_signal())
         .await?;
-
     Ok(())
 }
