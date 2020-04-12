@@ -2,19 +2,15 @@
 name = "grpc-sample"
 version = "0.1.0"
 authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
+edition = "2018"
 
 [build-dependencies]
-protoc-rust-grpc = "0.2.1"
+tonic-build = { version = "0.2" }
 
 [dependencies]
-env_logger = "0.5.4"
-grpc = "0.2.1"
-libc = "0.2.37"
-lazy_static = "1.0.0"
-log = "0.4.1"
-nix = "0.10.0"
-protobuf = "1.4.3"
-tls-api = "0.1.14"
+tonic = "0.2"
+prost = "0.6"
+tokio = { version = "0.2", features = ["full"] }
 
 [[bin]]
 name = "greeter_client"
