@@ -6,7 +6,6 @@ edition = "2018"
 
 [dependencies]
 chrono = "0.4"
-failure = "0.1"
 getopts = "0.2"
 rustls = "0.17"
 rustls-native-certs = "0.3"

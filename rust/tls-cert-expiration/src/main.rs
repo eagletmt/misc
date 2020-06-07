@@ -1,4 +1,4 @@
-fn main() -> Result<(), failure::Error> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = std::env::args();
     let program = args.next().unwrap();
 
@@ -24,7 +24,8 @@ fn main() -> Result<(), failure::Error> {
     let mut tcp_stream = std::net::TcpStream::connect((&*host, port))?;
     let dns_name = webpki::DNSNameRef::try_from_ascii_str(&host)?;
     let mut config = rustls::ClientConfig::new();
-    config.root_store = rustls_native_certs::load_native_certs().expect("Failed to load local certificates");
+    config.root_store =
+        rustls_native_certs::load_native_certs().expect("Failed to load local certificates");
     let mut client_session = rustls::ClientSession::new(&std::sync::Arc::new(config), dns_name);
     use rustls::Session;
     while client_session.wants_write() {
