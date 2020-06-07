@@ -1,4 +1,4 @@
-fn main() -> Result<(), failure::Error> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut resolver = trust_dns_resolver::Resolver::default()?;
 
     for arg in std::env::args().skip(1) {
