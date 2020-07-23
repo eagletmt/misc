@@ -8,5 +8,5 @@ edition = "2018"
 
 [dependencies]
 clap = "2.33"
-rusoto_sts = { version = "0.44", default-features = false, features = ["rustls"] }
+rusoto_sts = { version = "0.45", default-features = false, features = ["rustls"] }
 tokio = { version = "0.2", features = ["full"] }

@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 futures = "0.3"
-rusoto_core = { version = "0.44", default-features = false, features = ["rustls"] }
-rusoto_s3 = { version = "0.44", default-features = false, features = ["rustls"] }
+rusoto_core = { version = "0.45", default-features = false, features = ["rustls"] }
+rusoto_s3 = { version = "0.45", default-features = false, features = ["rustls"] }
 rust-crypto = "0.2"
 tokio = { version = "0.2", features = ["full"]}
