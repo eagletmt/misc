@@ -5,7 +5,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for c in assert_trait::assert_trait!(Iterator<Item = char>, "assert".chars()) {
         println!("{}", c);
     }
-    for line in assert_trait::assert_trait!(Iterator<Item = &'a str>, "a\nb\nc".lines()) {
+    for line in assert_trait::assert_trait!(<'a>, Iterator<Item = &'a str>, "a\nb\nc".lines()) {
         println!("{}", line);
     }
 
