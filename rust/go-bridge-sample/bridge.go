@@ -1,13 +1,14 @@
 package main
 
-import (
-	"C"
+// typedef const char *const_string_t;
+import "C"
 
+import (
 	"cuelang.org/go/cue"
 )
 
 //export cue_export
-func cue_export(filename *C.char, code *C.char, e *C.int) *C.char {
+func cue_export(filename C.const_string_t, code C.const_string_t, e *C.int) *C.char {
 	f := C.GoString(filename)
 	c := C.GoString(code)
 	r := cue.Runtime{}

@@ -13,7 +13,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ))
         .status()?;
     if !status.success() {
-        panic!("Failed  to build libgo-bridge-sample.a");
+        panic!("Failed to build libgo-bridge-sample.a");
     }
 
     let bindings = bindgen::Builder::default()
