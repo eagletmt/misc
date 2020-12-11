@@ -1,0 +1,12 @@
+query LatestTarballQuery($owner: String!, $name: String!) {
+  repository(owner: $owner, name: $name) {
+    defaultBranchRef {
+      target {
+        __typename
+        ... on Commit {
+          tarballUrl
+        }
+      }
+    }
+  }
+}
