@@ -1,0 +1,13 @@
+[package]
+name = "s3-prefix-get"
+version = "0.1.0"
+authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rusoto_s3 = { version = "0.45", default-features = false, features = ["rustls"] }
+structopt = "0.3"
+tokio = { version = "0.2", features = ["fs", "io-util", "macros"] }
+futures = "0.3"
