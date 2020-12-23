@@ -1,3 +1,4 @@
+use bytes::Buf as _;
 use futures::StreamExt as _;
 use rusoto_s3::S3 as _;
 use structopt::StructOpt as _;
@@ -72,7 +73,10 @@ where
         let file = tokio::fs::File::create(&path).await?;
         let mut writer = tokio::io::BufWriter::new(file);
         while let Some(chunk) = body.next().await {
-            writer.write_buf(&mut chunk?).await?;
+            let mut chunk = chunk?;
+            while chunk.has_remaining() {
+                writer.write_buf(&mut chunk).await?;
+            }
         }
         writer.shutdown().await?;
         println!("s3://{}/{} -> {}", bucket, key, path.display());
