@@ -33,13 +33,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         continuation_token = resp.next_continuation_token;
 
         if let Some(contents) = resp.contents {
-            let mut futures_unordered = futures::stream::FuturesUnordered::new();
+            let mut futures = Vec::new();
             for content in contents {
                 if let Some(key) = content.key {
                     let path = opt.output_dir.join(key.strip_prefix(&fs_prefix).unwrap());
-                    futures_unordered.push(download(&s3_client, &opt.bucket, key, path));
+                    futures.push(download(&s3_client, &opt.bucket, key, path));
                 }
             }
+            let mut futures_unordered = futures::stream::iter(futures).buffer_unordered(16);
             while futures_unordered.next().await.is_some() {}
         }
 
