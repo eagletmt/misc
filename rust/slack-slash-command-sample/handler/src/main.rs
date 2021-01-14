@@ -46,6 +46,8 @@ async fn main(
     request: ApiGatewayV2Request,
     _: netlify_lambda::Context,
 ) -> Result<ApiGatewayV2Response, anyhow::Error> {
+    let _ = env_logger::try_init();
+
     println!("{:?}", request);
     if request.body.is_none() {
         return Ok(ApiGatewayV2Response {

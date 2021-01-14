@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 anyhow = "1.0"
 base64 = "0.13"
+env_logger = "0.8"
 hex = "0.4"
 netlify_lambda = "0.2"
 reqwest = { version = "0.11", default-features = false, features = ["rustls-tls", "json"] }
