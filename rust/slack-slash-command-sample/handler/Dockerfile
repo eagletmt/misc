@@ -1,14 +1,15 @@
 FROM rust:1.49 as builder
 
+ARG BUILD_TYPE=--release
 WORKDIR /usr/src/slack-slash-command-sample
 COPY Cargo.toml Cargo.lock ./
 RUN mkdir src && \
   echo 'fn main() {}' > src/main.rs && \
-  cargo build --release --locked && \
+  cargo build ${BUILD_TYPE} --locked && \
   rm -r src
 COPY src ./src/
-RUN cargo build --release --frozen --locked
+RUN cargo build ${BUILD_TYPE} --frozen --locked
 
 FROM public.ecr.aws/lambda/provided:al2
-COPY --from=builder /usr/src/slack-slash-command-sample/target/release/handler /var/runtime/bootstrap
+COPY --from=builder /usr/src/slack-slash-command-sample/target/*/handler /var/runtime/bootstrap
 CMD ["app.handler"]
