@@ -1,8 +1,8 @@
 import * as path from 'path';
-import * as cdk from '@aws-cdk/core';
-import * as apigatewayv2 from '@aws-cdk/aws-apigatewayv2';
-import * as lambda from '@aws-cdk/aws-lambda';
-import { LambdaProxyIntegration } from '@aws-cdk/aws-apigatewayv2-integrations';
+import * as cdk from 'aws-cdk-lib';
+import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import { LambdaProxyIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 
 export class SlackSlashCommandSampleStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
