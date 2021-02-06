@@ -1,0 +1,15 @@
+[package]
+name = "miam2tf"
+version = "0.1.0"
+authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+glob = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[build-dependencies]
+bindgen = "0.57"

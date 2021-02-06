@@ -1,0 +1,3 @@
+[submodule "rust/miam2tf/vendor/mruby"]
+	path = rust/miam2tf/vendor/mruby
+	url = https://github.com/mruby/mruby
