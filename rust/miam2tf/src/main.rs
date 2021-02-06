@@ -27,7 +27,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             mrb_args_req(1),
         );
 
-        miam2tf::mruby::mrb_load_nstring(mrb, code.as_ptr() as *const i8, code.len() as u64);
+        let ctx = miam2tf::mruby::mrbc_context_new(mrb);
+        miam2tf::mruby::mrbc_filename(mrb, ctx, "IAMfile\0".as_ptr() as *const i8);
+        miam2tf::mruby::mrb_load_nstring_cxt(
+            mrb,
+            code.as_ptr() as *const i8,
+            code.len() as u64,
+            ctx,
+        );
+        miam2tf::mruby::mrbc_context_free(mrb, ctx);
         if !(*mrb).exc.is_null() {
             miam2tf::mruby::mrb_print_error(mrb);
             std::process::exit(1);
@@ -167,7 +175,18 @@ extern "C" fn mrb_require(
     let mut file = unwrap_or_raise(mrb, std::fs::File::open(&path));
     let mut code = Vec::new();
     unwrap_or_raise(mrb, file.read_to_end(&mut code));
-    unsafe { miam2tf::mruby::mrb_load_nstring(mrb, code.as_ptr() as *const i8, code.len() as u64) };
+    unsafe {
+        let path_cstr = unwrap_or_raise(mrb, std::ffi::CString::new(path.as_bytes()));
+        let ctx = miam2tf::mruby::mrbc_context_new(mrb);
+        miam2tf::mruby::mrbc_filename(mrb, ctx, path_cstr.as_ptr());
+        miam2tf::mruby::mrb_load_nstring_cxt(
+            mrb,
+            code.as_ptr() as *const i8,
+            code.len() as u64,
+            ctx,
+        );
+        miam2tf::mruby::mrbc_context_free(mrb, ctx);
+    }
     mrb_nil_value()
 }
 
