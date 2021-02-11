@@ -117,6 +117,10 @@ fn mrb_nil_value() -> miam2tf::mruby::mrb_value {
     unsafe { miam2tf::mruby::wrapper_mrb_nil_value() }
 }
 
+fn mrb_integer(n: miam2tf::mruby::mrb_value) -> i64 {
+    unsafe { miam2tf::mruby::wrapper_mrb_integer(n) }
+}
+
 fn unwrap_or_raise<T, E>(mrb: *mut miam2tf::mruby::mrb_state, r: Result<T, E>) -> T
 where
     E: std::error::Error,
@@ -211,6 +215,8 @@ extern "C" fn mrb_require(
 struct Miam {
     users: Vec<User>,
     groups: Vec<Group>,
+    roles: Vec<Role>,
+    instance_profiles: Vec<InstanceProfile>,
 }
 #[derive(Debug, serde::Serialize)]
 struct User {
@@ -245,6 +251,21 @@ struct Group {
     path: Option<String>,
     policies: Vec<PolicyDocument>,
     attached_managed_policies: Vec<String>,
+}
+#[derive(Debug, serde::Serialize)]
+struct Role {
+    name: String,
+    path: Option<String>,
+    assume_role_policy_document: Option<PolicyDocument>,
+    policies: Vec<PolicyDocument>,
+    attached_managed_policies: Vec<String>,
+    instance_profiles: Vec<String>,
+    max_session_duration: Option<i64>,
+}
+#[derive(Debug, serde::Serialize)]
+struct InstanceProfile {
+    name: String,
+    path: Option<String>,
 }
 
 fn to_rust_policy_document(
@@ -334,7 +355,6 @@ fn to_miam(
     let mut groups = Vec::new();
     for group in to_rust_iter(attr_get(mrb, root, "groups\0")) {
         let name = to_rust_string(mrb, attr_get(mrb, group, "name\0"));
-        eprintln!("processing {:?}", name);
         let path = attr_get(mrb, group, "path\0");
         let path = if mrb_nil_p(path) {
             None
@@ -343,10 +363,8 @@ fn to_miam(
         };
         let mut policies = Vec::new();
         for policy in to_rust_iter(attr_get(mrb, group, "policies\0")) {
-            eprintln!("to_rust_policy_document");
             policies.push(to_rust_policy_document(mrb, policy));
         }
-        eprintln!("done policies");
         let mut attached_managed_policies = Vec::new();
         for policy in to_rust_iter(attr_get(mrb, group, "attached_managed_policies\0")) {
             attached_managed_policies.push(to_rust_string(mrb, policy));
@@ -358,7 +376,68 @@ fn to_miam(
             attached_managed_policies,
         });
     }
-    Ok(Miam { users, groups })
+    let mut roles = Vec::new();
+    for role in to_rust_iter(attr_get(mrb, root, "roles\0")) {
+        let name = to_rust_string(mrb, attr_get(mrb, role, "name\0"));
+        let path = attr_get(mrb, role, "path\0");
+        let path = if mrb_nil_p(path) {
+            None
+        } else {
+            Some(to_rust_string(mrb, path))
+        };
+        let assume_role_policy_document = attr_get(mrb, role, "assume_role_policy_document\0");
+        let assume_role_policy_document = if mrb_nil_p(assume_role_policy_document) {
+            None
+        } else {
+            Some(to_rust_policy_document(mrb, assume_role_policy_document))
+        };
+        let mut policies = Vec::new();
+        for policy in to_rust_iter(attr_get(mrb, role, "policies\0")) {
+            policies.push(to_rust_policy_document(mrb, policy));
+        }
+        let mut attached_managed_policies = Vec::new();
+        for policy in to_rust_iter(attr_get(mrb, role, "attached_managed_policies\0")) {
+            attached_managed_policies.push(to_rust_string(mrb, policy));
+        }
+        let mut instance_profiles = Vec::new();
+        for profile in to_rust_iter(attr_get(mrb, role, "instance_profiles\0")) {
+            instance_profiles.push(to_rust_string(mrb, profile));
+        }
+        let max_session_duration = attr_get(mrb, role, "max_session_duration\0");
+        let max_session_duration = if mrb_nil_p(max_session_duration) {
+            None
+        } else {
+            Some(mrb_integer(max_session_duration))
+        };
+        roles.push(Role {
+            name,
+            path,
+            assume_role_policy_document,
+            policies,
+            attached_managed_policies,
+            max_session_duration,
+            instance_profiles,
+        });
+    }
+
+    let mut instance_profiles = Vec::new();
+    for profile in to_rust_iter(attr_get(mrb, root, "instance_profiles\0")) {
+        let name = to_rust_string(mrb, attr_get(mrb, profile, "name\0"));
+        let path = attr_get(mrb, profile, "path\0");
+        let path = if mrb_nil_p(path) {
+            None
+        } else {
+            Some(to_rust_string(mrb, path))
+        };
+        instance_profiles.push(InstanceProfile { name, path });
+    }
+
+    Ok(Miam {
+        users,
+        groups,
+        roles,
+        instance_profiles,
+    })
 }
 
 fn print_as_hcl2(miam: &Miam) {
@@ -492,6 +571,113 @@ fn print_as_hcl2(miam: &Miam) {
                 group.name, short_policy_name
             );
             println!("  user = aws_iam_group.{}.name", group.name);
+            println!("  policy_arn = aws_iam_policy.{}.arn", short_policy_name);
+            println!("}}");
+        }
+    }
+
+    for role in &miam.roles {
+        println!(r#"resource "aws_iam_role" "{}" {{"#, role.name);
+        println!(r#"  name = "{}""#, role.name);
+        if let Some(ref path) = role.path {
+            println!(r#"  path = "{}""#, path);
+        }
+        if role.assume_role_policy_document.is_some() {
+            println!(
+                "  assume_role_policy = data.aws_iam_policy_document.assume-role-{}.json",
+                role.name
+            );
+        }
+        if let Some(duration) = role.max_session_duration {
+            println!("  max_session_duration = {}", duration);
+        }
+        println!("}}");
+
+        if let Some(ref policy) = role.assume_role_policy_document {
+            println!(
+                r#"resource "aws_iam_role_policy" "{}-{}" {{"#,
+                role.name, policy.name
+            );
+            println!(r#"  name = "{}""#, policy.name);
+            println!("  user = aws_iam_role.{}.name", role.name);
+            println!(
+                "  policy = data.aws_iam_policy_document.{}-{}.json",
+                role.name, policy.name
+            );
+            println!("}}");
+
+            println!(
+                r#"data "aws_iam_policy_document" "{}-{}" {{"#,
+                role.name, policy.name
+            );
+            if let Some(ref version) = policy.version {
+                println!(r#"  version = "{}""#, version);
+            }
+            for statement in &policy.statements {
+                println!(r#"  statement {{"#);
+                println!(r#"    effect = "{}""#, statement.effect);
+                println!("    actions = {:?}", statement.actions);
+                println!("    resources = {:?}", statement.resources);
+                for condition in &statement.conditions {
+                    println!("      condition {{");
+                    println!(r#"      test = "{}""#, condition.test);
+                    println!(r#"      variable = "{}""#, condition.variable);
+                    println!("      values = {:?}", condition.values);
+                    println!("      }}");
+                }
+                println!("  }}");
+            }
+            println!("}}");
+        }
+
+        for policy in &role.policies {
+            println!(
+                r#"resource "aws_iam_role_policy" "{}-{}" {{"#,
+                role.name, policy.name
+            );
+            println!(r#"  name = "{}""#, policy.name);
+            println!("  user = aws_iam_role.{}.name", role.name);
+            println!(
+                "  policy = data.aws_iam_policy_document.{}-{}.json",
+                role.name, policy.name
+            );
+            println!("}}");
+
+            println!(
+                r#"data "aws_iam_policy_document" "{}-{}" {{"#,
+                role.name, policy.name
+            );
+            if let Some(ref version) = policy.version {
+                println!(r#"  version = "{}""#, version);
+            }
+            for statement in &policy.statements {
+                println!(r#"  statement {{"#);
+                println!(r#"    effect = "{}""#, statement.effect);
+                println!("    actions = {:?}", statement.actions);
+                println!("    resources = {:?}", statement.resources);
+                for condition in &statement.conditions {
+                    println!("      condition {{");
+                    println!(r#"      test = "{}""#, condition.test);
+                    println!(r#"      variable = "{}""#, condition.variable);
+                    println!("      values = {:?}", condition.values);
+                    println!("      }}");
+                }
+                println!("  }}");
+            }
+            println!("}}");
+        }
+        for policy in &role.attached_managed_policies {
+            let short_policy_name = policy.rsplitn(2, '/').next().unwrap_or_else(|| {
+                panic!(
+                    "Invalid attached_managed_policies {} found in {} role",
+                    policy, role.name
+                )
+            });
+            println!(
+                r#"resource "aws_iam_role_policy_attachment" "{}-{}" {{"#,
+                role.name, short_policy_name
+            );
+            println!("  user = aws_iam_role.{}.name", role.name);
             println!("  policy_arn = aws_iam_policy.{}.arn", short_policy_name);
             println!("}}");
         }

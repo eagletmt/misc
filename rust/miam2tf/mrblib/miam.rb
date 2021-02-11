@@ -1,8 +1,10 @@
-Root = Struct.new(:users, :groups) do
+Root = Struct.new(:users, :groups, :roles, :instance_profiles) do
   def initialize
     super
     self.users ||= []
     self.groups ||= []
+    self.roles ||= []
+    self.instance_profiles ||= []
   end
 end
 
@@ -22,6 +24,18 @@ def group(name, path: nil, &block)
   group.path = path
   GroupContext.new(group).instance_eval(&block)
   @root.groups << group
+end
+
+def role(name, path: nil, &block)
+  role = Role.new
+  role.name = name
+  role.path = path
+  RoleContext.new(role).instance_eval(&block)
+  @root.roles << role
+end
+
+def instance_profile(name, path: nil)
+  @root.instance_profiles << InstanceProfile.new(name, path)
 end
 
 def exclude(_pattern)
@@ -82,7 +96,7 @@ PolicyDocument = Struct.new(:name, :version, :statements) do
             cond = PolicyCondition.new
             cond.test = test
             cond.variable = variable
-            cond.values = Array(values)
+            cond.values = Array(values).map(&:to_s)
             stmt.conditions << cond
           end
         end
@@ -122,3 +136,44 @@ class GroupContext
     # TODO
   end
 end
+
+Role = Struct.new(:name, :path, :assume_role_policy_document, :policies, :attached_managed_policies, :instance_profiles, :max_session_duration) do
+  def initialize
+    super
+    self.policies ||= []
+    self.instance_profiles ||= []
+    self.attached_managed_policies ||= []
+  end
+end
+
+class RoleContext
+  def initialize(role)
+    @role = role
+  end
+
+  def assume_role_policy_document(&block)
+    @role.assume_role_policy_document = PolicyDocument.from_raw('AssumeRolePolicyDocument', block.call)
+  end
+
+  def policy(name, &block)
+    @role.policies << PolicyDocument.from_raw(name, block.call)
+  end
+
+  def attached_managed_policies(*policies)
+    @role.attached_managed_policies.concat(policies.map(&:to_s))
+  end
+
+  def instance_profiles(*profiles)
+    @role.instance_profiles.concat(profiles.map(&:to_s))
+  end
+
+  def max_session_duration(duration)
+    @role.max_session_duration = duration.to_i
+  end
+
+  def include_template(template_name, context = {})
+    # TODO
+  end
+end
+
+InstanceProfile = Struct.new(:name, :path)

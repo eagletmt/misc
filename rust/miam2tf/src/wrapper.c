@@ -25,3 +25,5 @@ struct RClass* wrapper_e_runtime_error(mrb_state *mrb) {
 mrb_value wrapper_mrb_nil_value(void) {
   return mrb_nil_value();
 }
+
+mrb_int wrapper_mrb_integer(mrb_value n) { return mrb_integer(n); }
