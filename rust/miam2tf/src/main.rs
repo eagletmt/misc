@@ -216,6 +216,7 @@ struct Miam {
     users: Vec<User>,
     groups: Vec<Group>,
     roles: Vec<Role>,
+    managed_policies: Vec<ManagedPolicy>,
     instance_profiles: Vec<InstanceProfile>,
 }
 #[derive(Debug, serde::Serialize)]
@@ -261,6 +262,12 @@ struct Role {
     attached_managed_policies: Vec<String>,
     instance_profiles: Vec<String>,
     max_session_duration: Option<i64>,
+}
+#[derive(Debug, serde::Serialize)]
+struct ManagedPolicy {
+    name: String,
+    path: Option<String>,
+    policy_document: PolicyDocument,
 }
 #[derive(Debug, serde::Serialize)]
 struct InstanceProfile {
@@ -420,6 +427,24 @@ fn to_miam(
         });
     }
 
+    let mut managed_policies = Vec::new();
+    for policy in to_rust_iter(attr_get(mrb, root, "managed_policies\0")) {
+        let name = to_rust_string(mrb, attr_get(mrb, policy, "name\0"));
+        let path = attr_get(mrb, policy, "path\0");
+        let path = if mrb_nil_p(path) {
+            None
+        } else {
+            Some(to_rust_string(mrb, path))
+        };
+        let policy_document =
+            to_rust_policy_document(mrb, attr_get(mrb, policy, "policy_document\0"));
+        managed_policies.push(ManagedPolicy {
+            name,
+            path,
+            policy_document,
+        });
+    }
+
     let mut instance_profiles = Vec::new();
     for profile in to_rust_iter(attr_get(mrb, root, "instance_profiles\0")) {
         let name = to_rust_string(mrb, attr_get(mrb, profile, "name\0"));
@@ -436,6 +461,7 @@ fn to_miam(
         users,
         groups,
         roles,
+        managed_policies,
         instance_profiles,
     })
 }
@@ -681,5 +707,38 @@ fn print_as_hcl2(miam: &Miam) {
             println!("  policy_arn = aws_iam_policy.{}.arn", short_policy_name);
             println!("}}");
         }
+    }
+
+    for policy in &miam.managed_policies {
+        println!(r#"resource "aws_iam_policy" "{}" {{"#, policy.name);
+        println!(r#"  name = "{}""#, policy.name);
+        if let Some(ref path) = policy.path {
+            println!(r#"  path = "{}""#, path);
+        }
+        println!(
+            "  policy = data.aws_iam_policy_document.{}.json",
+            policy.name
+        );
+        println!("}}");
+
+        println!(r#"data "aws_iam_policy_document" "{}" {{"#, policy.name);
+        if let Some(ref version) = policy.policy_document.version {
+            println!(r#"  version = "{}""#, version);
+        }
+        for statement in &policy.policy_document.statements {
+            println!(r#"  statement {{"#);
+            println!(r#"    effect = "{}""#, statement.effect);
+            println!("    actions = {:?}", statement.actions);
+            println!("    resources = {:?}", statement.resources);
+            for condition in &statement.conditions {
+                println!("      condition {{");
+                println!(r#"      test = "{}""#, condition.test);
+                println!(r#"      variable = "{}""#, condition.variable);
+                println!("      values = {:?}", condition.values);
+                println!("      }}");
+            }
+            println!("  }}");
+        }
+        println!("}}");
     }
 }

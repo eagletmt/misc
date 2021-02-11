@@ -1,9 +1,10 @@
-Root = Struct.new(:users, :groups, :roles, :instance_profiles) do
+Root = Struct.new(:users, :groups, :roles, :managed_policies, :instance_profiles) do
   def initialize
     super
     self.users ||= []
     self.groups ||= []
     self.roles ||= []
+    self.managed_policies ||= []
     self.instance_profiles ||= []
   end
 end
@@ -32,6 +33,15 @@ def role(name, path: nil, &block)
   role.path = path
   RoleContext.new(role).instance_eval(&block)
   @root.roles << role
+end
+
+def managed_policy(name, path: nil, &block)
+  policy = ManagedPolicy.new
+  policy.name = name
+  policy.path = path
+  raw = ManagedPolicyContext.new.instance_eval(&block)
+  policy.policy_document = PolicyDocument.from_raw('ManagedPolicy', raw)
+  @root.managed_policies << policy
 end
 
 def instance_profile(name, path: nil)
@@ -174,6 +184,11 @@ class RoleContext
   def include_template(template_name, context = {})
     # TODO
   end
+end
+
+ManagedPolicy = Struct.new(:name, :path, :policy_document)
+
+class ManagedPolicyContext
 end
 
 InstanceProfile = Struct.new(:name, :path)
