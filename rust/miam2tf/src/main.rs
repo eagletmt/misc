@@ -135,32 +135,49 @@ extern "C" fn mrb_dir_glob(
     mrb: *mut miam2tf::mruby::mrb_state,
     _self: miam2tf::mruby::mrb_value,
 ) -> miam2tf::mruby::mrb_value {
+    let mut block = mrb_nil_value();
     let pat = unsafe {
         let mut val = mrb_nil_value();
-        miam2tf::mruby::mrb_get_args(mrb, "S\0".as_ptr() as *const i8, &mut val);
+        miam2tf::mruby::mrb_get_args(mrb, "S&\0".as_ptr() as *const i8, &mut val, &mut block);
         to_rust_string(mrb, val)
     };
 
-    let entries = unsafe { miam2tf::mruby::mrb_ary_new(mrb) };
-    for entry in unwrap_or_raise(mrb, glob::glob(&pat)) {
-        match entry {
-            Ok(path) => {
-                let path_str = format!("{}", path.display());
-                unsafe {
-                    let path_value = miam2tf::mruby::mrb_str_new(
-                        mrb,
-                        path_str.as_ptr() as *const i8,
-                        path_str.len() as u64,
-                    );
-                    miam2tf::mruby::mrb_ary_push(mrb, entries, path_value);
-                };
-            }
-            Err(e) => {
-                eprintln!("{:?}", e);
-            }
+    if mrb_nil_p(block) {
+        let entries = unsafe { miam2tf::mruby::mrb_ary_new(mrb) };
+        for entry in unwrap_or_raise(mrb, glob::glob(&pat)) {
+            let path = unwrap_or_raise(mrb, entry);
+            let path_str = format!("{}", path.display());
+            unsafe {
+                let path_value = miam2tf::mruby::mrb_str_new(
+                    mrb,
+                    path_str.as_ptr() as *const i8,
+                    path_str.len() as u64,
+                );
+                miam2tf::mruby::mrb_ary_push(mrb, entries, path_value);
+            };
         }
+        entries
+    } else {
+        for entry in unwrap_or_raise(mrb, glob::glob(&pat)) {
+            let path = unwrap_or_raise(mrb, entry);
+            let path_str = format!("{}", path.display());
+            unsafe {
+                let path_value = miam2tf::mruby::mrb_str_new(
+                    mrb,
+                    path_str.as_ptr() as *const i8,
+                    path_str.len() as u64,
+                );
+                miam2tf::mruby::mrb_funcall(
+                    mrb,
+                    block,
+                    "call\0".as_ptr() as *const i8,
+                    1,
+                    path_value,
+                );
+            };
+        }
+        mrb_nil_value()
     }
-    entries
 }
 
 extern "C" fn mrb_require(
