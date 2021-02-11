@@ -638,15 +638,34 @@ fn print_policy_document(name: &str, policy_document: &PolicyDocument) {
         println!(r#"  statement {{"#);
         println!(r#"    effect = "{}""#, statement.effect);
         println!("    actions = {:?}", statement.actions);
-        println!("    resources = {:?}", statement.resources);
+        println!(
+            "    resources = {:?}",
+            statement
+                .resources
+                .iter()
+                .map(|s| replace_iam_interpolation(s))
+                .collect::<Vec<_>>(),
+        );
         for condition in &statement.conditions {
             println!("      condition {{");
             println!(r#"      test = "{}""#, condition.test);
             println!(r#"      variable = "{}""#, condition.variable);
-            println!("      values = {:?}", condition.values);
+            println!(
+                "      values = {:?}",
+                condition
+                    .values
+                    .iter()
+                    .map(|s| replace_iam_interpolation(s))
+                    .collect::<Vec<_>>()
+            );
             println!("      }}");
         }
         println!("  }}");
     }
     println!("}}");
+}
+
+fn replace_iam_interpolation(s: &str) -> String {
+    // https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document#context-variable-interpolation
+    s.replace("${", "&{")
 }
