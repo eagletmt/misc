@@ -217,6 +217,7 @@ struct User {
     path: Option<String>,
     policies: Vec<PolicyDocument>,
     groups: Vec<String>,
+    attached_managed_policies: Vec<String>,
 }
 #[derive(Debug, serde::Serialize)]
 struct PolicyDocument {
@@ -297,11 +298,16 @@ fn to_miam(
         for group in to_rust_iter(attr_get(mrb, user, "groups\0")) {
             groups.push(to_rust_string(mrb, group));
         }
+        let mut attached_managed_policies = Vec::new();
+        for policy in to_rust_iter(attr_get(mrb, user, "attached_managed_policies\0")) {
+            attached_managed_policies.push(to_rust_string(mrb, policy));
+        }
         users.push(User {
             user_name,
             path,
             policies,
             groups,
+            attached_managed_policies,
         });
     }
     Ok(Miam { users })
@@ -348,6 +354,34 @@ fn print_as_hcl2(miam: &Miam) {
                 }
                 println!("  }}");
             }
+            println!("}}");
+        }
+        if !user.groups.is_empty() {
+            println!(
+                r#"resource "aws_iam_user_group_membership" "{}" {{"#,
+                user.user_name,
+            );
+            println!("  user = aws_iam_user.{}.name", user.user_name);
+            println!("  groups = [");
+            for group in &user.groups {
+                println!("    aws_iam_group.{}.name,", group);
+            }
+            println!("  ]");
+            println!("}}");
+        }
+        for policy in &user.attached_managed_policies {
+            let short_policy_name = policy.rsplitn(2, '/').next().unwrap_or_else(|| {
+                panic!(
+                    "Invalid attached_managed_policies {} found in {} user",
+                    policy, user.user_name
+                )
+            });
+            println!(
+                r#"resource "aws_iam_user_policy_attachment" "{}-{}" {{"#,
+                user.user_name, short_policy_name
+            );
+            println!("  user = aws_iam_user.{}.name", user.user_name);
+            println!("  policy_arn = aws_iam_policy.{}.arn", short_policy_name);
             println!("}}");
         }
     }

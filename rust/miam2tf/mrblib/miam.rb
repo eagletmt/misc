@@ -19,11 +19,12 @@ def exclude(_pattern)
   # miam2tf doesn't need to handle `exclude` method
 end
 
-User = Struct.new(:user_name, :path, :policies, :groups) do
+User = Struct.new(:user_name, :path, :policies, :groups, :attached_managed_policies) do
   def initialize
     super
     self.policies ||= []
     self.groups ||= []
+    self.attached_managed_policies ||= []
   end
 end
 
@@ -67,6 +68,14 @@ class UserContext
 
   def groups(*grps)
     @user.groups.concat(grps.map(&:to_s))
+  end
+
+  def attached_managed_policies(*policies)
+    @user.attached_managed_policies.concat(policies.map(&:to_s))
+  end
+
+  def include_template(template_name, context = {})
+    # TODO
   end
 end
 
