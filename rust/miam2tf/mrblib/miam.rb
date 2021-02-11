@@ -39,7 +39,11 @@ class UserContext
     policy = PolicyDocument.new
     policy.name = name.to_s
     policy.version = raw['Version']
-    policy.statements = raw['Statement'].map do |raw_stmt|
+    statements = raw['Statement']
+    unless statements.is_a?(Array)
+      statements = [statements]
+    end
+    policy.statements = statements.map do |raw_stmt|
       stmt = PolicyStatement.new
       stmt.effect = raw_stmt['Effect']
       stmt.actions = Array(raw_stmt['Action'])
