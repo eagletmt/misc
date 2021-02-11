@@ -488,28 +488,7 @@ fn print_as_hcl2(miam: &Miam) {
             );
             println!("}}");
 
-            println!(
-                r#"data "aws_iam_policy_document" "{}-{}" {{"#,
-                user.user_name, policy.name
-            );
-            if let Some(ref version) = policy.version {
-                println!(r#"  version = "{}""#, version);
-            }
-            for statement in &policy.statements {
-                println!(r#"  statement {{"#);
-                println!(r#"    effect = "{}""#, statement.effect);
-                println!("    actions = {:?}", statement.actions);
-                println!("    resources = {:?}", statement.resources);
-                for condition in &statement.conditions {
-                    println!("      condition {{");
-                    println!(r#"      test = "{}""#, condition.test);
-                    println!(r#"      variable = "{}""#, condition.variable);
-                    println!("      values = {:?}", condition.values);
-                    println!("      }}");
-                }
-                println!("  }}");
-            }
-            println!("}}");
+            print_policy_document(&format!("{}-{}", user.user_name, policy.name), &policy);
         }
         if !user.groups.is_empty() {
             println!(
@@ -562,28 +541,7 @@ fn print_as_hcl2(miam: &Miam) {
             );
             println!("}}");
 
-            println!(
-                r#"data "aws_iam_policy_document" "{}-{}" {{"#,
-                group.name, policy.name
-            );
-            if let Some(ref version) = policy.version {
-                println!(r#"  version = "{}""#, version);
-            }
-            for statement in &policy.statements {
-                println!(r#"  statement {{"#);
-                println!(r#"    effect = "{}""#, statement.effect);
-                println!("    actions = {:?}", statement.actions);
-                println!("    resources = {:?}", statement.resources);
-                for condition in &statement.conditions {
-                    println!("      condition {{");
-                    println!(r#"      test = "{}""#, condition.test);
-                    println!(r#"      variable = "{}""#, condition.variable);
-                    println!("      values = {:?}", condition.values);
-                    println!("      }}");
-                }
-                println!("  }}");
-            }
-            println!("}}");
+            print_policy_document(&format!("{}-{}", group.name, policy.name), &policy);
         }
         for policy in &group.attached_managed_policies {
             let short_policy_name = policy.rsplitn(2, '/').next().unwrap_or_else(|| {
@@ -620,40 +578,7 @@ fn print_as_hcl2(miam: &Miam) {
         println!("}}");
 
         if let Some(ref policy) = role.assume_role_policy_document {
-            println!(
-                r#"resource "aws_iam_role_policy" "{}-{}" {{"#,
-                role.name, policy.name
-            );
-            println!(r#"  name = "{}""#, policy.name);
-            println!("  user = aws_iam_role.{}.name", role.name);
-            println!(
-                "  policy = data.aws_iam_policy_document.{}-{}.json",
-                role.name, policy.name
-            );
-            println!("}}");
-
-            println!(
-                r#"data "aws_iam_policy_document" "{}-{}" {{"#,
-                role.name, policy.name
-            );
-            if let Some(ref version) = policy.version {
-                println!(r#"  version = "{}""#, version);
-            }
-            for statement in &policy.statements {
-                println!(r#"  statement {{"#);
-                println!(r#"    effect = "{}""#, statement.effect);
-                println!("    actions = {:?}", statement.actions);
-                println!("    resources = {:?}", statement.resources);
-                for condition in &statement.conditions {
-                    println!("      condition {{");
-                    println!(r#"      test = "{}""#, condition.test);
-                    println!(r#"      variable = "{}""#, condition.variable);
-                    println!("      values = {:?}", condition.values);
-                    println!("      }}");
-                }
-                println!("  }}");
-            }
-            println!("}}");
+            print_policy_document(&role.name, &policy);
         }
 
         for policy in &role.policies {
@@ -669,28 +594,7 @@ fn print_as_hcl2(miam: &Miam) {
             );
             println!("}}");
 
-            println!(
-                r#"data "aws_iam_policy_document" "{}-{}" {{"#,
-                role.name, policy.name
-            );
-            if let Some(ref version) = policy.version {
-                println!(r#"  version = "{}""#, version);
-            }
-            for statement in &policy.statements {
-                println!(r#"  statement {{"#);
-                println!(r#"    effect = "{}""#, statement.effect);
-                println!("    actions = {:?}", statement.actions);
-                println!("    resources = {:?}", statement.resources);
-                for condition in &statement.conditions {
-                    println!("      condition {{");
-                    println!(r#"      test = "{}""#, condition.test);
-                    println!(r#"      variable = "{}""#, condition.variable);
-                    println!("      values = {:?}", condition.values);
-                    println!("      }}");
-                }
-                println!("  }}");
-            }
-            println!("}}");
+            print_policy_document(&format!("{}-{}", role.name, policy.name), &policy);
         }
         for policy in &role.attached_managed_policies {
             let short_policy_name = policy.rsplitn(2, '/').next().unwrap_or_else(|| {
@@ -721,24 +625,28 @@ fn print_as_hcl2(miam: &Miam) {
         );
         println!("}}");
 
-        println!(r#"data "aws_iam_policy_document" "{}" {{"#, policy.name);
-        if let Some(ref version) = policy.policy_document.version {
-            println!(r#"  version = "{}""#, version);
-        }
-        for statement in &policy.policy_document.statements {
-            println!(r#"  statement {{"#);
-            println!(r#"    effect = "{}""#, statement.effect);
-            println!("    actions = {:?}", statement.actions);
-            println!("    resources = {:?}", statement.resources);
-            for condition in &statement.conditions {
-                println!("      condition {{");
-                println!(r#"      test = "{}""#, condition.test);
-                println!(r#"      variable = "{}""#, condition.variable);
-                println!("      values = {:?}", condition.values);
-                println!("      }}");
-            }
-            println!("  }}");
-        }
-        println!("}}");
+        print_policy_document(&policy.name, &policy.policy_document);
     }
+}
+
+fn print_policy_document(name: &str, policy_document: &PolicyDocument) {
+    println!(r#"data "aws_iam_policy_document" "{}" {{"#, name);
+    if let Some(ref version) = policy_document.version {
+        println!(r#"  version = "{}""#, version);
+    }
+    for statement in &policy_document.statements {
+        println!(r#"  statement {{"#);
+        println!(r#"    effect = "{}""#, statement.effect);
+        println!("    actions = {:?}", statement.actions);
+        println!("    resources = {:?}", statement.resources);
+        for condition in &statement.conditions {
+            println!("      condition {{");
+            println!(r#"      test = "{}""#, condition.test);
+            println!(r#"      variable = "{}""#, condition.variable);
+            println!("      values = {:?}", condition.values);
+            println!("      }}");
+        }
+        println!("  }}");
+    }
+    println!("}}");
 }
