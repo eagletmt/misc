@@ -6,5 +6,6 @@ MRuby::Build.new do |conf|
   conf.gembox 'stdlib'
   conf.gem core: 'mruby-compiler'
   conf.gem core: 'mruby-struct'
+  conf.gem github: 'iij/mruby-regexp-pcre'
   conf.gem '.'
 end
