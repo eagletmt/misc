@@ -162,12 +162,19 @@ extern "C" fn mrb_dir_glob(
                     path_str.as_ptr() as *const i8,
                     path_str.len() as u64,
                 );
-                crate::mruby_c::mrb_funcall(
+                let method_name = "call";
+                let method_id = crate::mruby_c::mrb_intern(
+                    mrb,
+                    method_name.as_ptr() as *const i8,
+                    method_name.len() as u64,
+                );
+                let argv = [path_value];
+                crate::mruby_c::mrb_funcall_argv(
                     mrb,
                     block,
-                    "call\0".as_ptr() as *const i8,
-                    1,
-                    path_value,
+                    method_id,
+                    argv.len() as i64,
+                    argv.as_ptr(),
                 );
             };
         }
@@ -236,7 +243,12 @@ impl<'a> Iterator for ValueIter<'a> {
 impl<'a> Value<'a> {
     pub fn read_attribute(&self, name: &'static str) -> Value<'a> {
         let value = unsafe {
-            crate::mruby_c::mrb_funcall(self.mruby.mrb, self.inner, name.as_ptr() as *const i8, 0)
+            let meth = crate::mruby_c::mrb_intern(
+                self.mruby.mrb,
+                name.as_ptr() as *const i8,
+                name.len() as u64,
+            );
+            crate::mruby_c::mrb_funcall_argv(self.mruby.mrb, self.inner, meth, 0, std::ptr::null())
         };
         Value {
             mruby: self.mruby,
