@@ -3,7 +3,7 @@ pub mod mruby;
 mod mruby_c;
 pub mod printer;
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug)]
 pub struct Miam {
     pub users: Vec<User>,
     pub groups: Vec<Group>,
@@ -12,7 +12,7 @@ pub struct Miam {
     pub instance_profiles: Vec<InstanceProfile>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug)]
 pub struct User {
     pub user_name: String,
     pub path: Option<String>,
@@ -21,14 +21,14 @@ pub struct User {
     pub attached_managed_policies: Vec<String>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug)]
 pub struct PolicyDocument {
     pub name: String,
     pub version: Option<String>,
     pub statements: Vec<PolicyStatement>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug)]
 pub struct PolicyStatement {
     pub effect: String,
     pub actions: Vec<String>,
@@ -36,14 +36,14 @@ pub struct PolicyStatement {
     pub conditions: Vec<PolicyCondition>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug)]
 pub struct PolicyCondition {
     pub test: String,
     pub variable: String,
     pub values: Vec<String>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug)]
 pub struct Group {
     pub name: String,
     pub path: Option<String>,
@@ -51,7 +51,7 @@ pub struct Group {
     pub attached_managed_policies: Vec<String>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug)]
 pub struct Role {
     pub name: String,
     pub path: Option<String>,
@@ -62,14 +62,14 @@ pub struct Role {
     pub max_session_duration: Option<i64>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug)]
 pub struct ManagedPolicy {
     pub name: String,
     pub path: Option<String>,
     pub policy_document: PolicyDocument,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug)]
 pub struct InstanceProfile {
     pub name: String,
     pub path: Option<String>,
