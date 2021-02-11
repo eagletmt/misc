@@ -10,12 +10,13 @@ Root = Struct.new(:users, :groups, :roles, :managed_policies, :instance_profiles
 end
 
 @root = Root.new
+@context = Hashie::Mash.new(templates: {})
 
 def user(name, path: nil, &block)
   user = User.new
   user.user_name = name
   user.path = path
-  UserContext.new(user).instance_eval(&block)
+  UserContext.new(user, context).instance_eval(&block)
   @root.users << user
 end
 
@@ -23,7 +24,7 @@ def group(name, path: nil, &block)
   group = Group.new
   group.name = name
   group.path = path
-  GroupContext.new(group).instance_eval(&block)
+  GroupContext.new(group, context).instance_eval(&block)
   @root.groups << group
 end
 
@@ -31,7 +32,7 @@ def role(name, path: nil, &block)
   role = Role.new
   role.name = name
   role.path = path
-  RoleContext.new(role).instance_eval(&block)
+  RoleContext.new(role, context).instance_eval(&block)
   @root.roles << role
 end
 
@@ -42,6 +43,14 @@ def managed_policy(name, path: nil, &block)
   raw = ManagedPolicyContext.new.instance_eval(&block)
   policy.policy_document = PolicyDocument.from_raw('ManagedPolicy', raw)
   @root.managed_policies << policy
+end
+
+def context
+  @context
+end
+
+def template(name, &block)
+  @context.templates[name] = block
 end
 
 def instance_profile(name, path: nil)
@@ -61,11 +70,27 @@ User = Struct.new(:user_name, :path, :policies, :groups, :attached_managed_polic
   end
 end
 
-class UserContext
-  attr_reader :user
+module TemplateHelper
+  def context
+    @context
+  end
 
-  def initialize(user)
+  def include_template(template_name, context = {})
+    block = @context.templates[template_name]
+    saved = @context
+    @context = @context.merge(context)
+    instance_eval(&block)
+    @context = saved
+    nil
+  end
+end
+
+class UserContext
+  include TemplateHelper
+
+  def initialize(user, context)
     @user = user
+    @context = context
   end
 
   def policy(name, &block)
@@ -78,10 +103,6 @@ class UserContext
 
   def attached_managed_policies(*policies)
     @user.attached_managed_policies.concat(policies.map(&:to_s))
-  end
-
-  def include_template(template_name, context = {})
-    # TODO
   end
 end
 
@@ -128,10 +149,11 @@ Group = Struct.new(:name, :path, :policies, :attached_managed_policies) do
 end
 
 class GroupContext
-  attr_reader :group
+  include TemplateHelper
 
-  def initialize(group)
+  def initialize(group, context)
     @group = group
+    @context = context
   end
 
   def policy(name, &block)
@@ -140,10 +162,6 @@ class GroupContext
 
   def attached_managed_policies(*policies)
     @group.attached_managed_policies.concat(policies.map(&:to_s))
-  end
-
-  def include_template(template_name, context = {})
-    # TODO
   end
 end
 
@@ -157,8 +175,11 @@ Role = Struct.new(:name, :path, :assume_role_policy_document, :policies, :attach
 end
 
 class RoleContext
-  def initialize(role)
+  include TemplateHelper
+
+  def initialize(role, context)
     @role = role
+    @context = context
   end
 
   def assume_role_policy_document(&block)
@@ -179,10 +200,6 @@ class RoleContext
 
   def max_session_duration(duration)
     @role.max_session_duration = duration.to_i
-  end
-
-  def include_template(template_name, context = {})
-    # TODO
   end
 end
 

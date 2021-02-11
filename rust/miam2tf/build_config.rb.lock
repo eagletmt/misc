@@ -9,3 +9,8 @@ builds:
       branch: HEAD
       commit: a961225c0953dd2bd987111f0836821573616de2
       version: 0.0.0
+    https://github.com/k0kubun/mruby-hashie.git:
+      url: https://github.com/k0kubun/mruby-hashie.git
+      branch: HEAD
+      commit: c69255a94debcd641f2087b569f5625509bde698
+      version: 0.0.0
