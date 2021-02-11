@@ -15,6 +15,10 @@ def user(name, path: nil, &block)
   @root.users << user
 end
 
+def exclude(_pattern)
+  # miam2tf doesn't need to handle `exclude` method
+end
+
 User = Struct.new(:user_name, :path, :policies, :groups) do
   def initialize
     super
