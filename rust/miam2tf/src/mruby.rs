@@ -56,12 +56,16 @@ impl MRuby {
         Ok(())
     }
 
-    pub fn instance_variable_get<'a>(&'a self, name: &str) -> Value<'a> {
+    pub fn instance_variable_get<'a>(&'a self, name: &'static str) -> Value<'a> {
         let value = unsafe {
             crate::mruby_c::mrb_obj_iv_get(
                 self.mrb,
                 (*self.mrb).top_self,
-                crate::mruby_c::mrb_intern(self.mrb, name.as_ptr() as *const i8, name.len() as u64),
+                crate::mruby_c::mrb_intern_static(
+                    self.mrb,
+                    name.as_ptr() as *const i8,
+                    name.len() as u64,
+                ),
             )
         };
         Value {
@@ -163,7 +167,7 @@ extern "C" fn mrb_dir_glob(
                     path_str.len() as u64,
                 );
                 let method_name = "call";
-                let method_id = crate::mruby_c::mrb_intern(
+                let method_id = crate::mruby_c::mrb_intern_static(
                     mrb,
                     method_name.as_ptr() as *const i8,
                     method_name.len() as u64,
@@ -243,7 +247,7 @@ impl<'a> Iterator for ValueIter<'a> {
 impl<'a> Value<'a> {
     pub fn read_attribute(&self, name: &'static str) -> Value<'a> {
         let value = unsafe {
-            let meth = crate::mruby_c::mrb_intern(
+            let meth = crate::mruby_c::mrb_intern_static(
                 self.mruby.mrb,
                 name.as_ptr() as *const i8,
                 name.len() as u64,
