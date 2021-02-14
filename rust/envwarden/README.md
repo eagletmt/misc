@@ -12,7 +12,7 @@ Set environment variables from Bitwarden Secure Notes.
 
 ## Usage
 ```
-% export BW_SESSION=...
+% export BW_SESSION="$(bw unlock --raw)"
 % export ENVWARDEN_FOLDERID=$(bw get folder envwarden | jq -r .id)
 % envwarden aws printenv AWS_ACCESS_KEY_ID
 AKIA................
