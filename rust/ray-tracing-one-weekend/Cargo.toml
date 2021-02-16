@@ -1,0 +1,14 @@
+[package]
+name = "ray-tracing-one-weekend"
+version = "0.1.0"
+authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+dashmap = "4.0.2"
+num = "0.3"
+rand = "0.8"
+rand_xorshift = "0.3"
+rayon = "1.5"
