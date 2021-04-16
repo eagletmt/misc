@@ -8,6 +8,7 @@ dependencies = [
  "async-stream",
  "env_logger",
  "futures",
+ "libc",
  "log",
  "nix",
  "prost",

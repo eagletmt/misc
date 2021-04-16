@@ -21,8 +21,6 @@ impl agent_proto::agent_service_server::AgentService for Agent {
 
 // Do not use tokio::main because fork(2) inside Tokio runtime behaves badly
 fn main() -> Result<(), anyhow::Error> {
-    use futures::TryFutureExt;
-
     env_logger::init();
     nix::sys::stat::umask(nix::sys::stat::Mode::from_bits(0o077).unwrap());
 
@@ -39,6 +37,16 @@ fn main() -> Result<(), anyhow::Error> {
         std::process::exit(0);
     }
 
+    unsafe {
+        libc::prctl(libc::PR_SET_DUMPABLE, 0);
+        libc::setrlimit(
+            libc::RLIMIT_CORE,
+            &libc::rlimit {
+                rlim_cur: 0,
+                rlim_max: 0,
+            },
+        );
+    }
     nix::unistd::setsid()?;
     std::env::set_current_dir("/")?;
     let child_pid = std::process::id();
@@ -56,6 +64,8 @@ fn main() -> Result<(), anyhow::Error> {
 
     let rt = tokio::runtime::Runtime::new()?;
     rt.block_on(async {
+        use futures::TryFutureExt as _;
+
         let incoming = {
             let uds = tokio::net::UnixListener::bind(&socket_path)?;
             async_stream::stream! {
