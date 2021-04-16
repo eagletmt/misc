@@ -1,0 +1,14 @@
+syntax = "proto3";
+package agentproto;
+
+service AgentService {
+  rpc Increment(IncrementRequest) returns (IncrementResponse);
+}
+
+message IncrementRequest {
+  uint64 n = 1;
+}
+
+message IncrementResponse {
+  uint64 total = 1;
+}
