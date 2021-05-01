@@ -6,8 +6,10 @@ use tokio_rustls::rustls::Session as _;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let host = "www.google.com";
-    let tcp_stream = tokio::net::TcpStream::connect((host, 443)).await?;
+    let host = std::env::args()
+        .nth(1)
+        .unwrap_or_else(|| "google.com".to_owned());
+    let tcp_stream = tokio::net::TcpStream::connect((host.clone(), 443)).await?;
     let mut tls_config = tokio_rustls::rustls::ClientConfig::default();
     tls_config
         .root_store
@@ -17,7 +19,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let connector = tokio_rustls::TlsConnector::from(std::sync::Arc::new(tls_config));
     let mut tls_stream = connector
         .connect(
-            tokio_rustls::webpki::DNSNameRef::try_from_ascii_str(host)?,
+            tokio_rustls::webpki::DNSNameRef::try_from_ascii_str(&host)?,
             tcp_stream,
         )
         .await?;
@@ -69,10 +71,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             host.as_bytes(),
         ))?;
         header_encoder.encode_field(hpack_codec::table::StaticEntry::MethodGet)?;
-        header_encoder.encode_field(hpack_codec::field::LiteralHeaderField::with_indexed_name(
-            hpack_codec::table::StaticEntry::Path,
-            b"/webhp",
-        ))?;
+        header_encoder.encode_field(hpack_codec::table::StaticEntry::PathRoot)?;
         let header_block_flagment = header_encoder.finish();
         // No Padding (No PADDED flag)
 
