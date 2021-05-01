@@ -44,7 +44,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         payload.put_u32(HEADER_TABLE_SIZE as u32);
         // Set SETTINGS_ENABLE_PUSH to 0
         payload.put_u16(0x2);
-        payload.put_u32(1);
+        payload.put_u32(0);
 
         // https://httpwg.org/specs/rfc7540.html#rfc.section.4.1
         let mut frame = bytes::BytesMut::new();
