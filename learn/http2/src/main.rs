@@ -148,15 +148,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     http_body.put(&payload[1..length - pad_length - 1]);
                 }
                 if (flags & 0x1) != 0 {
-                    // END_STREAM flag is set
-                    println!("    Return DATA frame for END_STREAM");
-                    let mut frame = bytes::BytesMut::new();
-                    frame.put_uint(0, 3); // Length
-                    frame.put_u8(0x0); // Type = DATA
-                    frame.put_u8(0x1); // Flags = END_STREAM
-                    frame.put_u32(stream_identifier);
-                    tls_writer.write_all(&frame).await?;
-
                     // https://httpwg.org/specs/rfc7540.html#rfc.section.6.4
                     println!("    Return RST_STREAM frame");
                     let mut frame = bytes::BytesMut::new();
