@@ -17,7 +17,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tls_config.alpn_protocols.push(b"h2".to_vec());
     tls_config.key_log = std::sync::Arc::new(tokio_rustls::rustls::KeyLogFile::new());
     let connector = tokio_rustls::TlsConnector::from(std::sync::Arc::new(tls_config));
-    let mut tls_stream = connector
+    let tls_stream = connector
         .connect(
             tokio_rustls::webpki::DNSNameRef::try_from_ascii_str(&host)?,
             tcp_stream,
@@ -31,10 +31,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .get_alpn_protocol()
             .map(|p| String::from_utf8_lossy(p))
     );
+    let (tls_reader, mut tls_writer) = tokio::io::split(tls_stream);
+    let mut tls_reader = tokio::io::BufReader::new(tls_reader);
 
     // https://httpwg.org/specs/rfc7540.html#rfc.section.3.5
     let preface = b"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
-    tls_stream.write_all(preface).await?;
+    tls_writer.write_all(preface).await?;
 
     const HEADER_TABLE_SIZE: u16 = 4096;
     // Send SETTINGS frame
@@ -55,7 +57,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         frame.put_u8(0x00); // Flags = 0 (ACK = 0)
         frame.put_u32(0x00000000); // Stream Identifier = 0
         frame.extend_from_slice(&payload);
-        tls_stream.write_all(&frame).await?;
+        tls_writer.write_all(&frame).await?;
     }
     // Send HEADERS frame
     {
@@ -81,7 +83,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         frame.put_u8(0x1 | 0x4); // Flags = END_STREAM | END_HEADERS
         frame.put_u32(0x00000001); // Stream Identifier = 1
         frame.extend_from_slice(&header_block_flagment);
-        tls_stream.write_all(&frame).await?;
+        tls_writer.write_all(&frame).await?;
     }
 
     // Read responses
@@ -91,17 +93,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Reading frame");
         // https://httpwg.org/specs/rfc7540.html#rfc.section.4.1
         let mut header = bytes::BytesMut::new();
-        header.resize(9, 0);
-        let read_bytes = tls_stream.read(&mut header).await?;
-        if read_bytes == 0 {
-            eprintln!("  Got EOF");
-            break;
-        } else if read_bytes < 9 {
-            eprintln!(
-                "  Read only {} bytes while reading frame header",
-                read_bytes
-            );
-            break;
+        while header.len() < 9 {
+            let mut buf = bytes::BytesMut::new();
+            buf.resize(9 - header.len(), 0);
+            let read_bytes = tls_reader.read(&mut buf).await?;
+            if read_bytes == 0 {
+                eprintln!("  Got EOF while reading frame header");
+                break 'read_frame;
+            } else {
+                header.put(&buf[0..read_bytes]);
+                eprintln!("  Read only {}/9 bytes in total for header", header.len());
+            }
         }
         let length = header.get_uint(3) as usize;
         let type_ = header.get_u8();
@@ -118,13 +120,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let mut buf = bytes::BytesMut::new();
                 buf.resize(length - payload.len(), 0);
                 println!("  Read payload for {} bytes", buf.len());
-                let read_bytes = tls_stream.read(&mut buf).await?;
+                let read_bytes = tls_reader.read(&mut buf).await?;
                 if read_bytes == 0 {
                     eprintln!("  Got EOF while reading frame payload");
                     break 'read_frame;
                 } else {
                     payload.put(&buf[0..read_bytes]);
-                    eprintln!("  Read {}/{} bytes in total", payload.len(), length);
+                    eprintln!(
+                        "  Read {}/{} bytes in total for payload",
+                        payload.len(),
+                        length
+                    );
                 }
             }
         }
@@ -149,7 +155,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     frame.put_u8(0x0); // Type = DATA
                     frame.put_u8(0x1); // Flags = END_STREAM
                     frame.put_u32(stream_identifier);
-                    tls_stream.write_all(&frame).await?;
+                    tls_writer.write_all(&frame).await?;
 
                     // https://httpwg.org/specs/rfc7540.html#rfc.section.6.4
                     println!("    Return RST_STREAM frame");
@@ -159,7 +165,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     frame.put_u8(0x0); // Flags
                     frame.put_u32(stream_identifier);
                     frame.put_u32(0x5); // STREAM_CLOSED
-                    tls_stream.write_all(&frame).await?;
+                    tls_writer.write_all(&frame).await?;
                     break;
                 }
             }
