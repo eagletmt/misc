@@ -176,6 +176,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     );
                 }
             }
+            0x3 => {
+                // RST_STREAM frame
+                // https://httpwg.org/specs/rfc7540.html#rfc.section.6.4
+                let error_code = payload.get_u32();
+                println!("    error_code: 0x{:x}", error_code);
+            }
             0x4 => {
                 // SETTINGS frame
                 // https://httpwg.org/specs/rfc7540.html#SETTINGS
@@ -209,9 +215,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         frame.put_u8(0x4); // Type = SETTINGS (0x4)
                         frame.put_u8(0x1); // Flags = 1 (ACK = 1)
                         frame.put_u32(0x00000000); // Stream Identifier = 0
-                        tls_stream.write_all(&frame).await?;
+                        tls_writer.write_all(&frame).await?;
                     }
                 }
+            }
+            0x7 => {
+                // GOAWAY frame
+                // https://httpwg.org/specs/rfc7540.html#rfc.section.6.8
+                let last_stream_id = payload.get_u32();
+                let error_code = payload.get_u32();
+                println!(
+                    "    (last_stream_id={}) error_code: 0x{:x}",
+                    last_stream_id, error_code
+                );
+                break;
             }
             0x8 => {
                 // WINDOW_UPDATE frame
