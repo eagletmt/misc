@@ -32,12 +32,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .map(|p| String::from_utf8_lossy(p))
     );
     let (tls_reader, mut tls_writer) = tokio::io::split(tls_stream);
-    let mut tls_reader = tokio::io::BufReader::new(tls_reader);
+    const BUF_READER_CAP: u32 = 64 * 1024;
+    let mut tls_reader = tokio::io::BufReader::with_capacity(BUF_READER_CAP as usize, tls_reader);
 
     // https://httpwg.org/specs/rfc7540.html#rfc.section.3.5
     let preface = b"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
     tls_writer.write_all(preface).await?;
 
+    let mut window_size = BUF_READER_CAP;
     const HEADER_TABLE_SIZE: u16 = 4096;
     // Send SETTINGS frame
     {
@@ -49,6 +51,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Set SETTINGS_ENABLE_PUSH to 0
         payload.put_u16(0x2);
         payload.put_u32(0);
+        // Set SETTINGS_INITIAL_WINDOW_SIZE to window_size
+        payload.put_u16(0x4);
+        payload.put_u32(window_size);
 
         // https://httpwg.org/specs/rfc7540.html#rfc.section.4.1
         let mut frame = bytes::BytesMut::new();
@@ -90,7 +95,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut http_body = bytes::BytesMut::new();
     let mut table_size = 4096;
     'read_frame: loop {
-        println!("Reading frame");
+        if window_size < BUF_READER_CAP / 2 {
+            const WINDOW_SIZE_INCREMENT: u32 = 16 * BUF_READER_CAP;
+            for stream_identifier in 0..=1 {
+                let mut frame = bytes::BytesMut::new();
+                frame.put_uint(4, 3);
+                frame.put_u8(0x8); // Type = WINDOW_UPDATE (0x8)
+                frame.put_u8(0); // Flags = 0
+                frame.put_u32(stream_identifier); // Stream Identifier = stream_identifier
+                frame.put_u32(WINDOW_SIZE_INCREMENT);
+                tls_writer.write_all(&frame).await?;
+                println!(
+                    "Send WINDOW_UPDATE to stream_identifier={}",
+                    stream_identifier
+                );
+            }
+            window_size += WINDOW_SIZE_INCREMENT;
+        }
+
+        println!(
+            "Reading frame (buffer.len()={}, window_size={})",
+            tls_reader.buffer().len(),
+            window_size
+        );
         // https://httpwg.org/specs/rfc7540.html#rfc.section.4.1
         let mut header = bytes::BytesMut::new();
         while header.len() < 9 {
@@ -102,7 +129,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 break 'read_frame;
             } else {
                 header.put(&buf[0..read_bytes]);
-                eprintln!("  Read only {}/9 bytes in total for header", header.len());
+                eprintln!("  Read {}/9 bytes in total for header", header.len());
             }
         }
         let length = header.get_uint(3) as usize;
@@ -113,6 +140,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("  frame.type = 0x{:x}", type_);
         println!("  frame.flags = 0x{:x}", flags);
         println!("  frame.stream_identifier = {}", stream_identifier);
+        window_size -= length as u32;
 
         let mut payload = bytes::BytesMut::new();
         if length > 0 {
