@@ -59,7 +59,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         header_encoder.encode_field(hpack_codec::table::StaticEntry::SchemeHttp)?;
         header_encoder.encode_field(hpack_codec::field::LiteralHeaderField::with_indexed_name(
             hpack_codec::table::StaticEntry::Path,
-            b"/routeguide.RouteGuide/GetFeature",
+            b"/routeguide.RouteGuide/RecordRoute",
         ))?;
         header_encoder.encode_field(hpack_codec::field::LiteralHeaderField::with_indexed_name(
             hpack_codec::table::StaticEntry::Authority,
@@ -88,25 +88,65 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     const FRAME_TYPE_DATA: u8 = 0x0;
     {
-        // Send Length-Prefixed-Message via DATA frame
-        let request = grpc::protos::Point {
-            latitude: 407838351,
-            longitude: -746143763,
-        };
-        let mut protobuf = bytes::BytesMut::with_capacity(request.encoded_len());
-        request.encode(&mut protobuf)?;
-        println!("request protobuf: {:?}", protobuf);
-        let mut payload = bytes::BytesMut::with_capacity(protobuf.len() + 5);
-        payload.put_u8(0); // Compressed-Flag = 0
-        payload.put_u32(protobuf.len() as u32); // Message-Length
-        payload.put(protobuf);
+        // Send multiple Length-Prefixed-Message via DATA frame
+        async fn send_point<W>(
+            writer: &mut W,
+            point: grpc::protos::Point,
+        ) -> Result<(), Box<dyn std::error::Error>>
+        where
+            W: tokio::io::AsyncWrite + Unpin,
+        {
+            let mut protobuf = bytes::BytesMut::with_capacity(point.encoded_len());
+            point.encode(&mut protobuf)?;
+            println!("request protobuf: {:?}", protobuf);
+            let mut payload = bytes::BytesMut::with_capacity(protobuf.len() + 5);
+            payload.put_u8(0); // Compressed-Flag = 0
+            payload.put_u32(protobuf.len() as u32); // Message-Length
+            payload.put(protobuf);
+            write_frame(
+                writer,
+                Frame {
+                    type_: FRAME_TYPE_DATA,
+                    flags: 0x0,
+                    stream_identifier: 1,
+                    payload,
+                },
+            )
+            .await?;
+            Ok(())
+        }
+
+        send_point(
+            &mut tcp_writer,
+            grpc::protos::Point {
+                latitude: 407838351,
+                longitude: -746143763,
+            },
+        )
+        .await?;
+        send_point(
+            &mut tcp_writer,
+            grpc::protos::Point {
+                latitude: 408122808,
+                longitude: -743999179,
+            },
+        )
+        .await?;
+        send_point(
+            &mut tcp_writer,
+            grpc::protos::Point {
+                latitude: 413628156,
+                longitude: -749015468,
+            },
+        )
+        .await?;
         write_frame(
             &mut tcp_writer,
             Frame {
                 type_: FRAME_TYPE_DATA,
                 flags: 0x1,
                 stream_identifier: 1,
-                payload,
+                payload: &[],
             },
         )
         .await?;
@@ -217,7 +257,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let compressed_flag = response.get_u8();
     let message_length = response.get_u32();
     response.truncate(message_length as usize);
-    let reply = grpc::protos::Feature::decode(response)?;
+    let reply = grpc::protos::RouteSummary::decode(response)?;
     println!("compressed_flag={} {:?}", compressed_flag, reply);
 
     Ok(())

@@ -12,6 +12,12 @@ struct Frame<B> {
     payload: B,
 }
 
+#[derive(Debug, Clone, Copy)]
+struct MessagePrefix {
+    compressed: bool,
+    length: usize,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let host = "localhost";
@@ -59,7 +65,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         header_encoder.encode_field(hpack_codec::table::StaticEntry::SchemeHttp)?;
         header_encoder.encode_field(hpack_codec::field::LiteralHeaderField::with_indexed_name(
             hpack_codec::table::StaticEntry::Path,
-            b"/routeguide.RouteGuide/GetFeature",
+            b"/routeguide.RouteGuide/ListFeatures",
         ))?;
         header_encoder.encode_field(hpack_codec::field::LiteralHeaderField::with_indexed_name(
             hpack_codec::table::StaticEntry::Authority,
@@ -89,9 +95,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     const FRAME_TYPE_DATA: u8 = 0x0;
     {
         // Send Length-Prefixed-Message via DATA frame
-        let request = grpc::protos::Point {
-            latitude: 407838351,
-            longitude: -746143763,
+        let request = grpc::protos::Rectangle {
+            lo: Some(grpc::protos::Point {
+                latitude: -900000000,
+                longitude: -1800000000,
+            }),
+            hi: Some(grpc::protos::Point {
+                latitude: 900000000,
+                longitude: 1800000000,
+            }),
         };
         let mut protobuf = bytes::BytesMut::with_capacity(request.encoded_len());
         request.encode(&mut protobuf)?;
@@ -115,7 +127,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     const FRAME_TYPE_RST_STREAM: u8 = 0x3;
     const FRAME_TYPE_PING: u8 = 0x6;
     const FRAME_TYPE_WINDOW_UPDATE: u8 = 0x8;
-    let mut response = bytes::BytesMut::new();
+    let mut response_buffer = bytes::BytesMut::new();
+    let mut last_message_prefix = None;
     loop {
         if window_size < INITIAL_WINDOW_SIZE / 2 {
             const WINDOW_SIZE_INCREMENT: u32 = 16 * INITIAL_WINDOW_SIZE;
@@ -155,7 +168,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         match frame.type_ {
             FRAME_TYPE_DATA => {
-                response.put(frame.payload);
+                response_buffer.put(frame.payload);
+                loop {
+                    if last_message_prefix.is_none() && response_buffer.len() >= 5 {
+                        last_message_prefix = Some(MessagePrefix {
+                            compressed: response_buffer.get_u8() != 0,
+                            length: response_buffer.get_u32() as usize,
+                        });
+                    } else {
+                        break;
+                    }
+                    if let Some(message_prefix) = last_message_prefix {
+                        if response_buffer.len() >= message_prefix.length {
+                            let protobuf = response_buffer.split_to(message_prefix.length);
+                            let message = grpc::protos::Feature::decode(protobuf)?;
+                            println!("{:?}", message);
+                            last_message_prefix = None;
+                        } else {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
             }
             FRAME_TYPE_HEADERS => {
                 let mut decoder = hpack_codec::Decoder::new(4096);
@@ -213,12 +248,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     }
-
-    let compressed_flag = response.get_u8();
-    let message_length = response.get_u32();
-    response.truncate(message_length as usize);
-    let reply = grpc::protos::Feature::decode(response)?;
-    println!("compressed_flag={} {:?}", compressed_flag, reply);
 
     Ok(())
 }

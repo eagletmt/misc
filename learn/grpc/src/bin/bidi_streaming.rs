@@ -12,6 +12,12 @@ struct Frame<B> {
     payload: B,
 }
 
+#[derive(Debug, Clone, Copy)]
+struct MessagePrefix {
+    compressed: bool,
+    length: usize,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let host = "localhost";
@@ -59,7 +65,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         header_encoder.encode_field(hpack_codec::table::StaticEntry::SchemeHttp)?;
         header_encoder.encode_field(hpack_codec::field::LiteralHeaderField::with_indexed_name(
             hpack_codec::table::StaticEntry::Path,
-            b"/routeguide.RouteGuide/GetFeature",
+            b"/routeguide.RouteGuide/RouteChat",
         ))?;
         header_encoder.encode_field(hpack_codec::field::LiteralHeaderField::with_indexed_name(
             hpack_codec::table::StaticEntry::Authority,
@@ -88,25 +94,96 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     const FRAME_TYPE_DATA: u8 = 0x0;
     {
-        // Send Length-Prefixed-Message via DATA frame
-        let request = grpc::protos::Point {
-            latitude: 407838351,
-            longitude: -746143763,
-        };
-        let mut protobuf = bytes::BytesMut::with_capacity(request.encoded_len());
-        request.encode(&mut protobuf)?;
-        println!("request protobuf: {:?}", protobuf);
-        let mut payload = bytes::BytesMut::with_capacity(protobuf.len() + 5);
-        payload.put_u8(0); // Compressed-Flag = 0
-        payload.put_u32(protobuf.len() as u32); // Message-Length
-        payload.put(protobuf);
+        // Send multiple Length-Prefixed-Message via DATA frame
+        async fn send_route_note<W>(
+            writer: &mut W,
+            route_note: grpc::protos::RouteNote,
+        ) -> Result<(), Box<dyn std::error::Error>>
+        where
+            W: tokio::io::AsyncWrite + Unpin,
+        {
+            let mut protobuf = bytes::BytesMut::with_capacity(route_note.encoded_len());
+            route_note.encode(&mut protobuf)?;
+            println!("request protobuf: {:?}", protobuf);
+            let mut payload = bytes::BytesMut::with_capacity(protobuf.len() + 5);
+            payload.put_u8(0); // Compressed-Flag = 0
+            payload.put_u32(protobuf.len() as u32); // Message-Length
+            payload.put(protobuf);
+            write_frame(
+                writer,
+                Frame {
+                    type_: FRAME_TYPE_DATA,
+                    flags: 0x0,
+                    stream_identifier: 1,
+                    payload,
+                },
+            )
+            .await?;
+            Ok(())
+        }
+
+        send_route_note(
+            &mut tcp_writer,
+            grpc::protos::RouteNote {
+                location: Some(grpc::protos::Point {
+                    latitude: 0,
+                    longitude: 0,
+                }),
+                message: "(0, 0) 1st".to_owned(),
+            },
+        )
+        .await?;
+        send_route_note(
+            &mut tcp_writer,
+            grpc::protos::RouteNote {
+                location: Some(grpc::protos::Point {
+                    latitude: 0,
+                    longitude: 1,
+                }),
+                message: "(0, 1) 2nd".to_owned(),
+            },
+        )
+        .await?;
+        send_route_note(
+            &mut tcp_writer,
+            grpc::protos::RouteNote {
+                location: Some(grpc::protos::Point {
+                    latitude: 1,
+                    longitude: 0,
+                }),
+                message: "(1, 0) 3rd".to_owned(),
+            },
+        )
+        .await?;
+        send_route_note(
+            &mut tcp_writer,
+            grpc::protos::RouteNote {
+                location: Some(grpc::protos::Point {
+                    latitude: 1,
+                    longitude: 1,
+                }),
+                message: "(1, 1) 4th".to_owned(),
+            },
+        )
+        .await?;
+        send_route_note(
+            &mut tcp_writer,
+            grpc::protos::RouteNote {
+                location: Some(grpc::protos::Point {
+                    latitude: 0,
+                    longitude: 1,
+                }),
+                message: "(0, 1) 5th".to_owned(),
+            },
+        )
+        .await?;
         write_frame(
             &mut tcp_writer,
             Frame {
                 type_: FRAME_TYPE_DATA,
                 flags: 0x1,
                 stream_identifier: 1,
-                payload,
+                payload: &[],
             },
         )
         .await?;
@@ -115,7 +192,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     const FRAME_TYPE_RST_STREAM: u8 = 0x3;
     const FRAME_TYPE_PING: u8 = 0x6;
     const FRAME_TYPE_WINDOW_UPDATE: u8 = 0x8;
-    let mut response = bytes::BytesMut::new();
+    let mut response_buffer = bytes::BytesMut::new();
+    let mut last_message_prefix = None;
     loop {
         if window_size < INITIAL_WINDOW_SIZE / 2 {
             const WINDOW_SIZE_INCREMENT: u32 = 16 * INITIAL_WINDOW_SIZE;
@@ -155,7 +233,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         match frame.type_ {
             FRAME_TYPE_DATA => {
-                response.put(frame.payload);
+                response_buffer.put(frame.payload);
+                loop {
+                    if last_message_prefix.is_none() && response_buffer.len() >= 5 {
+                        last_message_prefix = Some(MessagePrefix {
+                            compressed: response_buffer.get_u8() != 0,
+                            length: response_buffer.get_u32() as usize,
+                        });
+                    } else {
+                        break;
+                    }
+                    if let Some(message_prefix) = last_message_prefix {
+                        if response_buffer.len() >= message_prefix.length {
+                            let protobuf = response_buffer.split_to(message_prefix.length);
+                            let message = grpc::protos::RouteNote::decode(protobuf)?;
+                            println!("{:?}", message);
+                            last_message_prefix = None;
+                        } else {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
             }
             FRAME_TYPE_HEADERS => {
                 let mut decoder = hpack_codec::Decoder::new(4096);
@@ -213,12 +313,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     }
-
-    let compressed_flag = response.get_u8();
-    let message_length = response.get_u32();
-    response.truncate(message_length as usize);
-    let reply = grpc::protos::Feature::decode(response)?;
-    println!("compressed_flag={} {:?}", compressed_flag, reply);
 
     Ok(())
 }
