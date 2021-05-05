@@ -1,3 +1,6 @@
 [submodule "rust/miam2tf/vendor/mruby"]
 	path = rust/miam2tf/vendor/mruby
 	url = https://github.com/mruby/mruby
+[submodule "learn/grpc/vendor/grpc"]
+	path = learn/grpc/vendor/grpc
+	url = https://github.com/grpc/grpc
