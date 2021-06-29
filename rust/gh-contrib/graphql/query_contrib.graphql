@@ -1,0 +1,31 @@
+query QueryContrib($login: String!) {
+  user(login: $login) {
+    contributionsCollection {
+      endedAt
+      pullRequestContributions(first: 100) {
+        edges {
+          node {
+            pullRequest {
+              state
+              url
+              createdAt
+              title
+            }
+          }
+        }
+      }
+      issueContributions(first: 100) {
+        edges {
+          node {
+            issue {
+              state
+              url
+              createdAt
+              title
+            }
+          }
+        }
+      }
+    }
+  }
+}

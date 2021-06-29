@@ -1,0 +1,16 @@
+[package]
+name = "gh-contrib"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ansi_term = "0.12"
+anyhow = "1"
+chrono = { version = "0.4", features = ["serde"] }
+graphql_client = "0.9"
+reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
+serde = "1"
+structopt = "0.3"
+tokio = { version = "1", features = ["macros", "rt"] }
