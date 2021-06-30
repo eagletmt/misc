@@ -1,6 +1,7 @@
-query QueryContrib($login: String!) {
+query QueryContrib($login: String!, $from: DateTime, $to: DateTime) {
   user(login: $login) {
-    contributionsCollection {
+    contributionsCollection(from: $from, to: $to) {
+      startedAt
       endedAt
       pullRequestContributions(first: 100) {
         edges {
