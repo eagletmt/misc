@@ -6,9 +6,9 @@ struct Opt {
     #[structopt(short, long)]
     user: String,
     #[structopt(short, long)]
-    from: Option<chrono::DateTime<chrono::Utc>>,
+    from: Option<chrono::NaiveDate>,
     #[structopt(short, long)]
-    to: Option<chrono::DateTime<chrono::Utc>>,
+    to: Option<chrono::NaiveDate>,
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -18,8 +18,18 @@ async fn main() -> Result<(), anyhow::Error> {
     let token = std::env::var("GITHUB_ACCESS_TOKEN")?;
     let variables = query_contrib::Variables {
         login: opt.user,
-        from: opt.from,
-        to: opt.to,
+        from: opt.from.map(|from| {
+            chrono::DateTime::from_utc(
+                from.and_time(chrono::NaiveTime::from_hms(0, 0, 0)),
+                chrono::Utc,
+            )
+        }),
+        to: opt.to.map(|to| {
+            chrono::DateTime::from_utc(
+                to.and_time(chrono::NaiveTime::from_hms(0, 0, 0)),
+                chrono::Utc,
+            )
+        }),
     };
     let body = QueryContrib::build_query(variables);
 
