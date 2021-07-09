@@ -1,7 +1,19 @@
 import { GraphQLClient } from 'graphql-request';
-import { getSdk, User } from './generated/graphql';
+import { getSdk } from './generated/graphql';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
+import {
+  createTheme,
+  Box,
+  Card,
+  CardContent,
+  CardHeader,
+  Container,
+  CssBaseline,
+  Grid,
+  TextField,
+  ThemeProvider,
+} from '@material-ui/core';
 
 const client = new GraphQLClient('http://localhost:3000/graphql');
 const sdk = getSdk(client);
@@ -19,11 +31,36 @@ function App() {
     }
   };
 
-  const input = <input type='number' value={userId ? userId : undefined} onChange={onChange}></input>;
-  return (<>
-    {input}
-    {renderUser(userName)}
-  </>);
+  const theme = createTheme({
+    palette: {
+      type: 'dark',
+    },
+  });
+  const input = <TextField type='number' label='User ID' value={userId == null ? '' : userId} onChange={onChange}></TextField>;
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline/>
+      <Container>
+        <Box my={4}>
+        <Grid container>
+          <Grid item xs>
+          <form>
+            {input}
+          </form>
+        </Grid>
+        <Grid item xs>
+          <Card>
+            <CardHeader title='User'/>
+            <CardContent>
+              {renderUser(userName)}
+            </CardContent>
+          </Card>
+        </Grid>
+        </Grid>
+        </Box>
+      </Container>
+    </ThemeProvider>
+  );
 }
 
 function renderUser(userName: string | null) {
@@ -32,7 +69,7 @@ function renderUser(userName: string | null) {
   } else if (userName === '') {
     return <div>Not found</div>;
   } else {
-    return <div>User: {userName}</div>;
+    return <div>{userName}</div>;
   }
 }
 
