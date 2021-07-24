@@ -73,6 +73,7 @@ where
 
     let separator = std::path::MAIN_SEPARATOR.to_string();
     let mut buf = vec![0u8; 16 * 1024];
+    let buf_size = buf.len();
     for entry in entries {
         reader.seek(std::io::SeekFrom::Start(entry.offset as u64))?;
         let p = std::path::PathBuf::from(entry.name.replace('\\', &separator));
@@ -83,8 +84,9 @@ where
         let file = std::fs::File::create(&p)?;
         let mut writer = std::io::BufWriter::new(file);
         let mut read_bytes = 0;
-        while read_bytes < entry.size as usize {
-            let r = std::cmp::min(reader.read(&mut buf)?, entry.size as usize - read_bytes);
+        let size = entry.size as usize;
+        while read_bytes < size {
+            let r = reader.read(&mut buf[0..std::cmp::min(buf_size, size - read_bytes)])?;
             for i in 0..r {
                 buf[i] ^= key[(read_bytes + i) % key.len()];
             }
