@@ -5,7 +5,6 @@
 
 use anyhow::Context as _;
 use byteorder::ReadBytesExt as _;
-use sha1::Digest as _;
 use std::io::Read as _;
 use std::io::Seek as _;
 use std::io::Write as _;
@@ -51,7 +50,8 @@ where
     let pos = reader.stream_position()?;
     let mut index = vec![0u8; index_size];
     reader.read_exact(&mut index)?;
-    let key = sha1::Sha1::digest(&index);
+    let key = ring::digest::digest(&ring::digest::SHA1_FOR_LEGACY_USE_ONLY, &index);
+    let key = key.as_ref();
     reader.seek(std::io::SeekFrom::Start(pos))?;
 
     let file_count = reader.read_u32::<byteorder::LittleEndian>()?;
