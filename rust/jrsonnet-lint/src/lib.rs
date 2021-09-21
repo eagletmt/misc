@@ -1,9 +1,25 @@
 #[derive(Debug)]
 pub struct Variable {
-    name: String,
-    path: std::path::PathBuf,
-    begin_offset: usize,
-    end_offset: usize,
+    pub name: String,
+    pub path: std::path::PathBuf,
+    pub begin_offset: usize,
+    pub end_offset: usize,
+}
+
+impl Variable {
+    pub fn begin_offset_line(&self) -> std::io::Result<usize> {
+        use std::io::BufRead as _;
+        use std::io::Read as _;
+
+        let file = std::fs::File::open(&self.path)?;
+        let reader = std::io::BufReader::new(file);
+        let mut lineno = 1;
+        for line in reader.take(self.begin_offset as u64).lines() {
+            line?;
+            lineno += 1;
+        }
+        Ok(lineno)
+    }
 }
 
 pub fn find_unused_variables(expr: &jrsonnet_parser::LocExpr) -> Vec<Variable> {

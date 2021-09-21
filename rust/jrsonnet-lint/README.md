@@ -20,8 +20,8 @@ local x = error 'error';
   local y = 1,
 }
 % target/debug/jrsonnet-lint a.jsonnet b.jsonnet
-Variable { name: "x", path: "a.jsonnet", begin_offset: 0, end_offset: 52 }
-Variable { name: "y", path: "b.jsonnet", begin_offset: 26, end_offset: 52 }
+a.jsonnet:1:x is defined but unused
+b.jsonnet:3:y is defined but unused
 ```
 
-TODO: Convert `begin_offset` to line number
+FIXME: Line number of unused variable location is inaccurate except for top-level `local` expression.

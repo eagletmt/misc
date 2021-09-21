@@ -10,7 +10,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )?;
         let unused_variables = jrsonnet_lint::find_unused_variables(&expr);
         for variable in unused_variables {
-            println!("{:?}", variable);
+            println!(
+                "{}:{}:{} is defined but unused",
+                variable.path.display(),
+                variable.begin_offset_line()?,
+                variable.name
+            );
         }
     }
     Ok(())
