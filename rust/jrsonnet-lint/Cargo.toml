@@ -6,7 +6,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-jrsonnet-parser = "0.4"
+# XXX: https://github.com/CertainLach/jrsonnet/pull/63 is required
+jrsonnet-parser = { git = "https://github.com/CertainLach/jrsonnet", rev = "27b30fb24a145cf407cbb34ea1795f72d6634eb4" }
 
 [dev-dependencies]
 indoc = "1"

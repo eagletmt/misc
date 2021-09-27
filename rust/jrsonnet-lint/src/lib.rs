@@ -102,10 +102,13 @@ fn simplify_expr(
                 simplify_expr(rhs, env, counter),
             ],
         },
-        jrsonnet_parser::Expr::Apply(func, jrsonnet_parser::ArgsDesc(args), _) => {
-            let mut children = Vec::with_capacity(args.len() + 1);
+        jrsonnet_parser::Expr::Apply(func, jrsonnet_parser::ArgsDesc { unnamed, named }, _) => {
+            let mut children = Vec::with_capacity(unnamed.len() + named.len() + 1);
             children.push(simplify_expr(func, env, counter));
-            for jrsonnet_parser::Arg(_, arg) in args {
+            for arg in unnamed {
+                children.push(simplify_expr(arg, env, counter));
+            }
+            for (_, arg) in named {
                 children.push(simplify_expr(arg, env, counter));
             }
             Simplified::Expr { children }

@@ -35,8 +35,7 @@ dependencies = [
 [[package]]
 name = "jrsonnet-interner"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5ff75843e778244f3476800e6f492950a6ecee1d9308019764983d311620bf9"
+source = "git+https://github.com/CertainLach/jrsonnet?rev=27b30fb24a145cf407cbb34ea1795f72d6634eb4#27b30fb24a145cf407cbb34ea1795f72d6634eb4"
 dependencies = [
  "jrsonnet-gc",
  "rustc-hash",
@@ -54,8 +53,7 @@ dependencies = [
 [[package]]
 name = "jrsonnet-parser"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "daaad69b21c1dba904f3bb1640e02f8f60c5cd4eae8c9bc035b38a83324cdf45"
+source = "git+https://github.com/CertainLach/jrsonnet?rev=27b30fb24a145cf407cbb34ea1795f72d6634eb4#27b30fb24a145cf407cbb34ea1795f72d6634eb4"
 dependencies = [
  "jrsonnet-gc",
  "jrsonnet-interner",
