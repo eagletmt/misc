@@ -12,7 +12,7 @@ fn resolve_name(resolver: &mut trust_dns_resolver::Resolver, name: String) {
     let name_style = ansi_term::Style::new().fg(ansi_term::Color::Green);
     let addr_style = ansi_term::Style::new().fg(ansi_term::Color::Blue);
 
-    if let Ok(resp) = resolver.mx_lookup(&name) {
+    if let Ok(resp) = resolver.mx_lookup(name.as_str()) {
         let mut records: Vec<_> = resp.into_iter().collect();
         records.sort_unstable_by(|x, y| {
             x.preference()
@@ -30,7 +30,7 @@ fn resolve_name(resolver: &mut trust_dns_resolver::Resolver, name: String) {
         }
     }
 
-    if let Ok(resp) = resolver.txt_lookup(&name) {
+    if let Ok(resp) = resolver.txt_lookup(name.as_str()) {
         for txt in resp {
             for data in txt.txt_data() {
                 println!(
@@ -43,7 +43,10 @@ fn resolve_name(resolver: &mut trust_dns_resolver::Resolver, name: String) {
         }
     }
 
-    if let Ok(resp) = resolver.lookup(&name, trust_dns_resolver::proto::rr::RecordType::CAA) {
+    if let Ok(resp) = resolver.lookup(
+        name.as_str(),
+        trust_dns_resolver::proto::rr::RecordType::CAA,
+    ) {
         for rdata in resp {
             let caa = rdata.as_caa().unwrap();
             use trust_dns_resolver::proto::rr::rdata::caa::{Property, Value};
@@ -92,7 +95,10 @@ fn resolve_name(resolver: &mut trust_dns_resolver::Resolver, name: String) {
     let mut name = name;
     loop {
         let mut resolved = false;
-        if let Ok(resp) = resolver.lookup(&name, trust_dns_resolver::proto::rr::RecordType::CNAME) {
+        if let Ok(resp) = resolver.lookup(
+            name.as_str(),
+            trust_dns_resolver::proto::rr::RecordType::CNAME,
+        ) {
             for cname in resp {
                 resolved = true;
                 let next_name = cname.as_cname().unwrap().to_string();
@@ -112,7 +118,7 @@ fn resolve_name(resolver: &mut trust_dns_resolver::Resolver, name: String) {
     let name = name;
 
     let mut addrs = Vec::new();
-    if let Ok(resp) = resolver.ipv4_lookup(&name) {
+    if let Ok(resp) = resolver.ipv4_lookup(name.as_str()) {
         for a in resp {
             println!(
                 "{} {} {}",
@@ -124,7 +130,7 @@ fn resolve_name(resolver: &mut trust_dns_resolver::Resolver, name: String) {
         }
     }
 
-    if let Ok(resp) = resolver.ipv6_lookup(&name) {
+    if let Ok(resp) = resolver.ipv6_lookup(name.as_str()) {
         for aaaa in resp {
             println!(
                 "{} {} {}",

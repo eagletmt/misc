@@ -2,8 +2,8 @@
 name = "rdig"
 version = "0.1.0"
 authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 ansi_term = "0.12"
-trust-dns-resolver = "0.19"
+trust-dns-resolver = "0.20"
