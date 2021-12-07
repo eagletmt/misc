@@ -402,6 +402,7 @@ name = "rdig"
 version = "0.1.0"
 dependencies = [
  "ansi_term",
+ "tokio",
  "trust-dns-resolver",
 ]
 
@@ -510,7 +511,19 @@ dependencies = [
  "mio",
  "num_cpus",
  "pin-project-lite",
+ "tokio-macros",
  "winapi",
+]
+
+[[package]]
+name = "tokio-macros"
+version = "1.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c9efc1aba077437943f7515666aa2b882dfabfbfdf89c819ea75a8d6e9eaba5e"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

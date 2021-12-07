@@ -1,18 +1,115 @@
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut resolver = trust_dns_resolver::Resolver::default()?;
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut resolver = trust_dns_resolver::AsyncResolver::tokio_from_system_conf()?;
 
     for arg in std::env::args().skip(1) {
-        resolve_name(&mut resolver, arg);
+        resolve_name(&mut resolver, arg).await?;
     }
     Ok(())
 }
 
-fn resolve_name(resolver: &mut trust_dns_resolver::Resolver, name: String) {
+async fn resolve_name(
+    resolver: &mut trust_dns_resolver::TokioAsyncResolver,
+    name: String,
+) -> Result<(), Box<dyn std::error::Error>> {
     let type_style = ansi_term::Style::new().fg(ansi_term::Color::Yellow);
     let name_style = ansi_term::Style::new().fg(ansi_term::Color::Green);
     let addr_style = ansi_term::Style::new().fg(ansi_term::Color::Blue);
 
-    if let Ok(resp) = resolver.mx_lookup(name.as_str()) {
+    let mx_handle = tokio::spawn(resolve_mx(
+        resolver.clone(),
+        name.clone(),
+        type_style,
+        name_style,
+    ));
+    let txt_handle = tokio::spawn(resolve_txt(resolver.clone(), name.clone(), type_style));
+    let caa_handle = tokio::spawn(resolve_caa(
+        resolver.clone(),
+        name.clone(),
+        type_style,
+        name_style,
+    ));
+
+    mx_handle.await?;
+    txt_handle.await?;
+    caa_handle.await?;
+
+    let mut name = name;
+    loop {
+        let mut resolved = false;
+        if let Ok(resp) = resolver
+            .lookup(
+                name.as_str(),
+                trust_dns_resolver::proto::rr::RecordType::CNAME,
+                Default::default(),
+            )
+            .await
+        {
+            for cname in resp {
+                resolved = true;
+                let next_name = cname.as_cname().unwrap().to_string();
+                println!(
+                    "{} {} {}",
+                    name,
+                    type_style.paint("CNAME"),
+                    name_style.paint(&next_name)
+                );
+                name = next_name;
+            }
+        }
+        if !resolved {
+            break;
+        }
+    }
+    let name = name;
+
+    let mut addrs = Vec::new();
+    if let Ok(resp) = resolver.ipv4_lookup(name.as_str()).await {
+        for a in resp {
+            println!(
+                "{} {} {}",
+                name,
+                type_style.paint("A"),
+                addr_style.paint(a.to_string())
+            );
+            addrs.push(std::net::IpAddr::from(a));
+        }
+    }
+
+    if let Ok(resp) = resolver.ipv6_lookup(name.as_str()).await {
+        for aaaa in resp {
+            println!(
+                "{} {} {}",
+                name,
+                type_style.paint("AAAA"),
+                addr_style.paint(aaaa.to_string())
+            );
+            addrs.push(std::net::IpAddr::from(aaaa));
+        }
+    }
+
+    let mut addr_handles = Vec::new();
+    for addr in addrs {
+        addr_handles.push(tokio::spawn(resolve_ptr(
+            resolver.clone(),
+            addr,
+            type_style,
+            name_style,
+        )));
+    }
+    for handle in addr_handles {
+        handle.await?;
+    }
+    Ok(())
+}
+
+async fn resolve_mx(
+    resolver: trust_dns_resolver::TokioAsyncResolver,
+    name: String,
+    type_style: ansi_term::Style,
+    name_style: ansi_term::Style,
+) {
+    if let Ok(resp) = resolver.mx_lookup(name.as_str()).await {
         let mut records: Vec<_> = resp.into_iter().collect();
         records.sort_unstable_by(|x, y| {
             x.preference()
@@ -29,24 +126,41 @@ fn resolve_name(resolver: &mut trust_dns_resolver::Resolver, name: String) {
             );
         }
     }
+}
 
-    if let Ok(resp) = resolver.txt_lookup(name.as_str()) {
+async fn resolve_txt(
+    resolver: trust_dns_resolver::TokioAsyncResolver,
+    name: String,
+    type_style: ansi_term::Style,
+) {
+    if let Ok(resp) = resolver.txt_lookup(name.as_str()).await {
         for txt in resp {
             for data in txt.txt_data() {
                 println!(
                     "{} {} {}",
                     name,
                     type_style.paint("TXT"),
-                    String::from_utf8_lossy(&data),
+                    String::from_utf8_lossy(data),
                 );
             }
         }
     }
+}
 
-    if let Ok(resp) = resolver.lookup(
-        name.as_str(),
-        trust_dns_resolver::proto::rr::RecordType::CAA,
-    ) {
+async fn resolve_caa(
+    resolver: trust_dns_resolver::TokioAsyncResolver,
+    name: String,
+    type_style: ansi_term::Style,
+    name_style: ansi_term::Style,
+) {
+    if let Ok(resp) = resolver
+        .lookup(
+            name.as_str(),
+            trust_dns_resolver::proto::rr::RecordType::CAA,
+            Default::default(),
+        )
+        .await
+    {
         for rdata in resp {
             let caa = rdata.as_caa().unwrap();
             use trust_dns_resolver::proto::rr::rdata::caa::{Property, Value};
@@ -91,76 +205,31 @@ fn resolve_name(resolver: &mut trust_dns_resolver::Resolver, name: String) {
             }
         }
     }
+}
 
-    let mut name = name;
-    loop {
-        let mut resolved = false;
-        if let Ok(resp) = resolver.lookup(
-            name.as_str(),
-            trust_dns_resolver::proto::rr::RecordType::CNAME,
-        ) {
-            for cname in resp {
-                resolved = true;
-                let next_name = cname.as_cname().unwrap().to_string();
+async fn resolve_ptr(
+    resolver: trust_dns_resolver::TokioAsyncResolver,
+    addr: std::net::IpAddr,
+    type_style: ansi_term::Style,
+    name_style: ansi_term::Style,
+) {
+    if let Ok(resp) = resolver.reverse_lookup(addr).await {
+        for ptr in resp {
+            {
                 println!(
                     "{} {} {}",
-                    name,
-                    type_style.paint("CNAME"),
-                    name_style.paint(&next_name)
+                    addr,
+                    type_style.paint("PTR"),
+                    name_style.paint(ptr.to_string())
                 );
-                name = next_name;
             }
         }
-        if !resolved {
-            break;
-        }
-    }
-    let name = name;
-
-    let mut addrs = Vec::new();
-    if let Ok(resp) = resolver.ipv4_lookup(name.as_str()) {
-        for a in resp {
-            println!(
-                "{} {} {}",
-                name,
-                type_style.paint("A"),
-                addr_style.paint(a.to_string())
-            );
-            addrs.push(std::net::IpAddr::from(a));
-        }
-    }
-
-    if let Ok(resp) = resolver.ipv6_lookup(name.as_str()) {
-        for aaaa in resp {
-            println!(
-                "{} {} {}",
-                name,
-                type_style.paint("AAAA"),
-                addr_style.paint(aaaa.to_string())
-            );
-            addrs.push(std::net::IpAddr::from(aaaa));
-        }
-    }
-
-    for addr in addrs {
-        if let Ok(resp) = resolver.reverse_lookup(addr) {
-            for ptr in resp {
-                {
-                    println!(
-                        "{} {} {}",
-                        addr,
-                        type_style.paint("PTR"),
-                        name_style.paint(ptr.to_string())
-                    );
-                }
-            }
-        } else {
-            println!(
-                "{} {} {}",
-                addr,
-                type_style.paint("PTR"),
-                ansi_term::Color::Red.paint("NONE")
-            );
-        }
+    } else {
+        println!(
+            "{} {} {}",
+            addr,
+            type_style.paint("PTR"),
+            ansi_term::Color::Red.paint("NONE")
+        );
     }
 }
