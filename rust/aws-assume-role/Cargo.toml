@@ -2,11 +2,12 @@
 name = "aws-assume-role"
 version = "0.1.0"
 authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 clap = "2.33"
-rusoto_sts = { version = "0.45", default-features = false, features = ["rustls"] }
-tokio = { version = "0.2", features = ["full"] }
+aws-config = "0.2"
+aws-sdk-sts = "0.2"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }

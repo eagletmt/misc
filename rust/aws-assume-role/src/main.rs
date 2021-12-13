@@ -20,20 +20,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .as_secs()
     );
 
-    use rusoto_sts::Sts;
-
-    let sts_client = rusoto_sts::StsClient::new(Default::default());
+    let shared_config = aws_config::load_from_env().await;
+    let sts_client = aws_sdk_sts::Client::new(&shared_config);
     let resp = sts_client
-        .assume_role(rusoto_sts::AssumeRoleRequest {
-            role_arn,
-            role_session_name,
-            ..Default::default()
-        })
+        .assume_role()
+        .role_arn(role_arn)
+        .role_session_name(role_session_name)
+        .send()
         .await?;
     let creds = resp.credentials.unwrap();
     println!(
         "AWS_ACCESS_KEY_ID={}\nAWS_SECRET_ACCESS_KEY={}\nAWS_SESSION_TOKEN={}",
-        creds.access_key_id, creds.secret_access_key, creds.session_token
+        creds.access_key_id.expect("access_key_id is missing"),
+        creds
+            .secret_access_key
+            .expect("secret_access_key is missing"),
+        creds.session_token.expect("session_token is missing"),
     );
 
     Ok(())
