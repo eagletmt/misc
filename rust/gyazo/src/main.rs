@@ -1,24 +1,23 @@
 const BUCKET_NAME: &str = "gyazo.wanko.cc";
 const URL_PREFIX: &str = "https://gyazo.wanko.cc";
-const REGION: rusoto_core::Region = rusoto_core::Region::ApNortheast1;
+const REGION: &str = "ap-northeast-1";
 
 #[tokio::main]
-async fn main() {
-    let s3 = rusoto_s3::S3Client::new(REGION);
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let shared_config = aws_config::from_env().region(REGION).load().await;
+    let s3 = aws_sdk_s3::Client::new(&shared_config);
 
     for arg in std::env::args().skip(1) {
-        upload(&s3, std::path::Path::new(&arg)).await;
+        upload(&s3, std::path::Path::new(&arg)).await?;
     }
+    Ok(())
 }
 
-async fn upload<S3>(s3: &S3, path: &std::path::Path)
-where
-    S3: rusoto_s3::S3,
-{
-    let mut file = std::fs::File::open(path).expect("std::fs::File::open");
-    let mut image = Vec::new();
-    use std::io::Read;
-    file.read_to_end(&mut image).expect("read_to_end");
+async fn upload(
+    s3_client: &aws_sdk_s3::Client,
+    path: &std::path::Path,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let image = tokio::fs::read(path).await?;
     let mut md5 = crypto::md5::Md5::new();
     use crypto::digest::Digest;
     md5.input(&image);
@@ -38,33 +37,32 @@ where
         path.display(),
         URL_PREFIX,
         digest,
-        REGION.name(),
+        REGION,
         BUCKET_NAME,
         digest
     );
-    let put_image_future = s3.put_object(rusoto_s3::PutObjectRequest {
-        bucket: BUCKET_NAME.to_owned(),
-        acl: Some("public-read".to_owned()),
-        storage_class: Some("REDUCED_REDUNDANCY".to_owned()),
-        key: image_key,
-        content_length: Some(image.len() as i64),
-        body: Some(image.into()),
-        content_type,
-        ..Default::default()
-    });
-    let put_html_future = s3.put_object(rusoto_s3::PutObjectRequest {
-        bucket: BUCKET_NAME.to_owned(),
-        acl: Some("public-read".to_owned()),
-        storage_class: Some("REDUCED_REDUNDANCY".to_owned()),
-        key: digest,
-        content_length: Some(html.len() as i64),
-        body: Some(html.into()),
-        content_type: Some("text/html".to_owned()),
-        ..Default::default()
-    });
+    let put_image_future = s3_client
+        .put_object()
+        .bucket(BUCKET_NAME)
+        .storage_class(aws_sdk_s3::model::StorageClass::ReducedRedundancy)
+        .key(image_key)
+        .content_length(image.len() as i64)
+        .body(image.into())
+        .set_content_type(content_type)
+        .send();
+    let put_html_future = s3_client
+        .put_object()
+        .bucket(BUCKET_NAME)
+        .storage_class(aws_sdk_s3::model::StorageClass::ReducedRedundancy)
+        .key(digest)
+        .content_length(html.len() as i64)
+        .body(html.into())
+        .content_type("text/html")
+        .send();
     let (put_image_result, put_html_result) = futures::join!(put_image_future, put_html_future);
-    put_image_result.expect("s3.put_object (html)");
-    put_html_result.expect("s3.put_object (image)");
+    put_image_result?;
+    put_html_result?;
+    Ok(())
 }
 
 fn render_html(digest: &str, key: &str) -> String {

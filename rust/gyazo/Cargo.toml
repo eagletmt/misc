@@ -2,11 +2,11 @@
 name = "gyazo"
 version = "0.1.0"
 authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 futures = "0.3"
-rusoto_core = { version = "0.45", default-features = false, features = ["rustls"] }
-rusoto_s3 = { version = "0.45", default-features = false, features = ["rustls"] }
+aws-config = "0.2"
+aws-sdk-s3 = "0.2"
 rust-crypto = "0.2"
-tokio = { version = "0.2", features = ["full"]}
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "fs"] }
