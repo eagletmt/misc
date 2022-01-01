@@ -1,5 +1,3 @@
-use warp::Filter as _;
-
 #[derive(Debug, juniper::GraphQLObject, sqlx::FromRow)]
 #[graphql()]
 struct User {
@@ -7,6 +5,7 @@ struct User {
     name: String,
 }
 
+#[derive(Clone)]
 struct Context {
     pool: sqlx::PgPool,
 }
@@ -33,42 +32,45 @@ type Schema = juniper::RootNode<
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    env_logger::init();
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", "info,tower_http::trace=debug");
+    }
+    tracing_subscriber::fmt::init();
 
     let pool = sqlx::PgPool::connect_with(
         sqlx::postgres::PgConnectOptions::new()
             .host("localhost")
             .port(5432)
             .database("graphql_sample")
-            .username("postgres")
+            .username("graphql_sample")
             .password("himitsu"),
     )
     .await?;
-    let schema = Schema::new(
+    let schema = std::sync::Arc::new(Schema::new(
         Query,
         juniper::EmptyMutation::new(),
         juniper::EmptySubscription::new(),
-    );
+    ));
+    let context = std::sync::Arc::new(Context { pool });
 
-    let state = warp::any().map(move || Context { pool: pool.clone() });
-    let log = warp::log("graphql_sample");
-    let graphql_filter = juniper_warp::make_graphql_filter(schema, state.boxed());
-    let graphiql = warp::get()
-        .and(warp::path("graphiql"))
-        .and(juniper_warp::graphiql_filter("/graphql", None));
-    let graphql = warp::path("graphql").and(graphql_filter);
-    let service = warp::service(graphiql.or(graphql).with(log));
+    let app = axum::Router::new()
+        .route(
+            "/graphiql",
+            axum::routing::get(|| juniper_hyper::graphiql("/graphql", None)),
+        )
+        .route(
+            "/graphql",
+            axum::routing::post(move |req| {
+                juniper_hyper::graphql(schema.clone(), context.clone(), req)
+            }),
+        )
+        .layer(tower::ServiceBuilder::new().layer(tower_http::trace::TraceLayer::new_for_http()));
 
     let server = if let Some(l) = listenfd::ListenFd::from_env().take_tcp_listener(0)? {
-        hyper::Server::from_tcp(l)?
+        axum::Server::from_tcp(l)?
     } else {
-        hyper::Server::bind(&"127.0.0.1:3000".parse()?)
+        axum::Server::bind(&"127.0.0.1:3000".parse()?)
     };
-    server
-        .serve(hyper::service::make_service_fn(|_| {
-            let service = service.clone();
-            async move { Ok::<_, std::convert::Infallible>(service) }
-        }))
-        .await?;
+    server.serve(app.into_make_service()).await?;
     Ok(())
 }

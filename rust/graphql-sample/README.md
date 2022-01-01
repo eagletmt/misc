@@ -4,7 +4,7 @@ Boilerplate code for building web app using GraphQL
 ## Libraries
 - Server side
     - Juniper
-    - Warp
+    - Axum
     - SQLx
 - Client side
     - GraphQL Code Generator
