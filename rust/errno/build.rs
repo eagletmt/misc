@@ -21,10 +21,8 @@ impl bindgen::callbacks::ParseCallbacks for MacroCollector {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     use std::io::Write as _;
 
-    println!("cargo:rerun-if-changed=wrapper.h");
-
     bindgen::builder()
-        .header("wrapper.h")
+        .header_contents("wrapper.h", "#include <errno.h>")
         .parse_callbacks(Box::new(MacroCollector::default()))
         .generate()
         .expect("unable to collect macros");
