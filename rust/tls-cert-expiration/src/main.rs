@@ -1,49 +1,55 @@
+use chrono::TimeZone as _;
+use std::convert::TryFrom as _;
+use std::io::Write as _;
+use structopt::StructOpt as _;
+use x509_parser::traits::FromDer as _;
+
+#[derive(structopt::StructOpt)]
+struct Opt {
+    #[structopt(short, long, default_value = "443")]
+    port: u16,
+    host: String,
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut args = std::env::args();
-    let program = args.next().unwrap();
+    let opt = Opt::from_args();
 
-    let mut options = getopts::Options::new();
-    options.optopt("p", "port", "Port number (default: 443)", "PORT");
-    let mut matches = match options.parse(args) {
-        Ok(m) => m,
-        Err(msg) => {
-            eprintln!("{}", msg);
-            print_usage(&program, &options);
-            std::process::exit(1);
-        }
-    };
-
-    let host = if matches.free.is_empty() {
-        print_usage(&program, &options);
-        std::process::exit(2);
-    } else {
-        matches.free.remove(0)
-    };
-    let port = matches.opt_str("p").map_or(443, |v| v.parse().unwrap());
-
-    let mut tcp_stream = std::net::TcpStream::connect((&*host, port))?;
-    let dns_name = webpki::DNSNameRef::try_from_ascii_str(&host)?;
-    let mut config = rustls::ClientConfig::new();
-    config.root_store =
-        rustls_native_certs::load_native_certs().expect("Failed to load local certificates");
-    let mut client_session = rustls::ClientSession::new(&std::sync::Arc::new(config), dns_name);
-    use rustls::Session;
-    while client_session.wants_write() {
-        client_session.write_tls(&mut tcp_stream)?;
+    let mut tcp_stream = std::net::TcpStream::connect((opt.host.as_str(), opt.port))?;
+    let dns_name = rustls::ServerName::try_from(opt.host.as_str())?;
+    let mut root_certs = rustls::RootCertStore::empty();
+    for cert in rustls_native_certs::load_native_certs()? {
+        root_certs.add(&rustls::Certificate(cert.0))?;
     }
-    while client_session.wants_read() && client_session.get_peer_certificates().is_none() {
-        client_session.read_tls(&mut tcp_stream)?;
-        client_session.process_new_packets()?;
+    let config = rustls::ClientConfig::builder()
+        .with_safe_defaults()
+        .with_root_certificates(root_certs)
+        .with_no_client_auth();
+    let mut client = rustls::ClientConnection::new(std::sync::Arc::new(config), dns_name)?;
+    while client.wants_write() {
+        client.write_tls(&mut tcp_stream)?;
     }
-    let certs = client_session.get_peer_certificates().unwrap();
-    let (_, cert) =
-        x509_parser::parse_x509_der(certs[0].as_ref()).expect("Failed to parse peer certificate");
-    println!("{}", host);
-    println!("    {}", cert.tbs_certificate.validity.not_before.rfc3339());
-    println!("    {}", cert.tbs_certificate.validity.not_after.rfc3339());
+    tcp_stream.flush()?;
+    while client.is_handshaking() && client.peer_certificates().is_none() {
+        client.read_tls(&mut tcp_stream)?;
+        client.process_new_packets()?;
+    }
+    let certs = client.peer_certificates().unwrap();
+    let (_, cert) = x509_parser::certificate::X509Certificate::from_der(certs[0].as_ref())?;
+    println!("{}", opt.host);
+    println!(
+        "    {}",
+        chrono::Local
+            .timestamp(cert.validity().not_before.timestamp(), 0)
+            .to_rfc3339()
+    );
+    println!(
+        "    {}",
+        chrono::Local
+            .timestamp(cert.validity().not_after.timestamp(), 0)
+            .to_rfc3339()
+    );
     let duration = cert
-        .tbs_certificate
-        .validity
+        .validity()
         .time_to_expiration()
         .expect("time_to_expiration failed");
     let rc = if duration <= std::time::Duration::from_secs(30 * 24 * 60 * 60) {
@@ -53,9 +59,4 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     std::process::exit(rc);
-}
-
-fn print_usage(program: &str, options: &getopts::Options) {
-    println!("{}", options.short_usage(program));
-    println!("{}", options.usage("Check TLS certificate expiration"));
 }
