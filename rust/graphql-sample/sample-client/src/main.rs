@@ -12,9 +12,9 @@ struct GetUser;
 
 #[derive(Debug)]
 enum Msg {
-    SetUserId(i64),
-    SetUserName(Option<String>),
-    SetError(String),
+    UserId(i64),
+    UserName(Option<String>),
+    Error(String),
 }
 
 #[derive(Debug)]
@@ -38,7 +38,7 @@ impl Component for Model {
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Self::Message::SetUserId(id) => {
+            Self::Message::UserId(id) => {
                 let need_update = self.user_id != Some(id);
                 self.user_id = Some(id);
                 ctx.link().send_future(async move {
@@ -51,23 +51,23 @@ impl Component for Model {
                     )
                     .await;
                     match result {
-                        Ok(resp) => Msg::SetUserName(
+                        Ok(resp) => Msg::UserName(
                             resp.data
                                 .expect_throw("GraphQL data is missing")
                                 .user
                                 .map(|u| u.name),
                         ),
-                        Err(e) => Msg::SetError(format!("{}", e)),
+                        Err(e) => Msg::Error(format!("{}", e)),
                     }
                 });
                 need_update
             }
-            Self::Message::SetUserName(name) => {
+            Self::Message::UserName(name) => {
                 let need_update = self.user_name != name;
                 self.user_name = name;
                 need_update
             }
-            Self::Message::SetError(e) => {
+            Self::Message::Error(e) => {
                 let need_update = self.error_message.as_ref() != Some(&e);
                 self.error_message = Some(e);
                 need_update
@@ -103,7 +103,7 @@ fn on_change(evt: web_sys::Event) -> Msg {
         .dyn_into::<web_sys::HtmlInputElement>()
         .expect_throw("failed to cast into HtmlInputElement");
     let value = input.value_as_number();
-    Msg::SetUserId(value as i64)
+    Msg::UserId(value as i64)
 }
 
 fn main() {
