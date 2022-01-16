@@ -13,7 +13,7 @@ struct GetUser;
 #[derive(Debug)]
 enum Msg {
     UserId(i64),
-    UserName(Option<String>),
+    UserName(String),
     Error(String),
 }
 
@@ -51,26 +51,32 @@ impl Component for Model {
                     )
                     .await;
                     match result {
-                        Ok(resp) => Msg::UserName(
-                            resp.data
+                        Ok(resp) => {
+                            if let Some(name) = resp
+                                .data
                                 .expect_throw("GraphQL data is missing")
                                 .user
-                                .map(|u| u.name),
-                        ),
+                                .map(|u| u.name)
+                            {
+                                Msg::UserName(name)
+                            } else {
+                                Msg::Error("User not found".to_owned())
+                            }
+                        }
                         Err(e) => Msg::Error(format!("{}", e)),
                     }
                 });
                 need_update
             }
             Self::Message::UserName(name) => {
-                let need_update = self.user_name != name;
-                self.user_name = name;
-                need_update
+                self.user_name = Some(name);
+                self.error_message = None;
+                true
             }
             Self::Message::Error(e) => {
-                let need_update = self.error_message.as_ref() != Some(&e);
+                self.user_name = None;
                 self.error_message = Some(e);
-                need_update
+                true
             }
         }
     }
@@ -79,19 +85,25 @@ impl Component for Model {
         let name_view = self
             .user_name
             .as_ref()
-            .map(|name| format!("Hello, {}", name))
-            .unwrap_or_default();
-        let error_view = self
-            .error_message
-            .as_ref()
-            .map(|m| format!("ERROR: {}", m))
-            .unwrap_or_default();
+            .map(|name| html! { <p>{format!("Hello, {}", name)}</p> });
+        let error_view = self.error_message.as_ref().map(|m| {
+            html! {
+                <article class="message is-danger">
+                    <div class="message-body">
+                        {m}
+                    </div>
+                </article>
+            }
+        });
         html! {
-            <>
-                <input type="number" label="User ID" onchange={ctx.link().callback(on_change)}/>
-                <p>{name_view}</p>
-                <p>{error_view}</p>
-            </>
+            <section class="section">
+                <div class="container">
+                    <h1 class="title">{"Lookup user"}</h1>
+                    <input class="input" type="number" label="User ID" onchange={ctx.link().callback(on_change)}/>
+                    { for name_view }
+                    { for error_view }
+                </div>
+            </section>
         }
     }
 }
