@@ -7,13 +7,17 @@ Boilerplate code for building web app using GraphQL
     - Axum
     - SQLx
 - Client side
-    - GraphQL Code Generator
-    - graphql-request
-    - React
+    - graphql-client
+    - Yew
+
+## Prerequisites
+- Install graphql-client CLI
+    - `cargo install graphql_client_cli`
+- Install [trunk](https://trunkrs.dev/)
 
 ## Development
-- Launch GraphQL server with `systemfd --no-pid -s http::3000 -- cargo watch -x run`
-- Generate schema and client code with `yarn run graphql-codegen`
-- Launch Webpack server with `yarn run webpack serve`
+- Launch GraphQL server with `cd sample-server; systemfd --no-pid -s http::3000 -- cargo watch -x run`
+- Generate schema and client code with `graphql-client introspect-schema http://localhost:3000/graphql --output schema.json`
+- Launch trunk server with `cd sample-client; trunk serve`
 - Open http://localhost:8080 to see main page
 - Open http://localhost:3000/graphiql to use GraphiQL

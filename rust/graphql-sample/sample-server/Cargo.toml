@@ -1,5 +1,5 @@
 [package]
-name = "graphql-sample"
+name = "sample-server"
 version = "0.1.0"
 edition = "2021"
 
@@ -10,7 +10,7 @@ anyhow = "1"
 axum = "0.4"
 juniper = "0.15"
 juniper_hyper = "0.8"
-listenfd = "0.3"
+listenfd = "0.4"
 sqlx = { version = "0.5", features = ["runtime-tokio-rustls", "postgres"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tower = "0.4.11"
