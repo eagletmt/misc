@@ -1,18 +1,19 @@
 [package]
-name = "rust-sandbox"
+name = "github-api-v4-sample"
 version = "0.1.0"
 authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0"
-env_logger = "0.8"
-graphql_client = "0.9"
-jsonwebtoken = "7.2"
-reqwest = { version = "0.10", default-features = false, features = ["rustls-tls", "json", "gzip"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-structopt = "0.3"
-tokio = { version = "0.2", features = ["macros"] }
+anyhow = "1"
+clap = { version = "3", features = ["derive"] }
+graphql_client = "0.10"
+jsonwebtoken = "8"
+reqwest = { version = "0.11", default-features = false, features = ["rustls-tls", "json", "gzip"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "tracing"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"

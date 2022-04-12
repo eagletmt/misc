@@ -1,18 +1,18 @@
 use chrono::TimeZone as _;
+use clap::Parser as _;
 use std::convert::TryFrom as _;
 use std::io::Write as _;
-use structopt::StructOpt as _;
 use x509_parser::traits::FromDer as _;
 
-#[derive(structopt::StructOpt)]
+#[derive(Debug, clap::Parser)]
 struct Opt {
-    #[structopt(short, long, default_value = "443")]
+    #[clap(short, long, default_value = "443")]
     port: u16,
     host: String,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let opt = Opt::from_args();
+    let opt = Opt::parse();
 
     let mut tcp_stream = std::net::TcpStream::connect((opt.host.as_str(), opt.port))?;
     let dns_name = rustls::ServerName::try_from(opt.host.as_str())?;

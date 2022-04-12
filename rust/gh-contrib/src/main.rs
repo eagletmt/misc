@@ -1,25 +1,23 @@
+use clap::Parser as _;
 use graphql_client::GraphQLQuery as _;
-use structopt::StructOpt as _;
 
-#[derive(structopt::StructOpt)]
+#[derive(clap::Parser)]
 struct Opt {
-    #[structopt(short, long)]
+    #[clap(short, long)]
     user: String,
-    #[structopt(short, long)]
+    #[clap(short, long)]
     from: Option<chrono::NaiveDate>,
-    #[structopt(short, long)]
+    #[clap(short, long)]
     to: Option<chrono::NaiveDate>,
 }
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), anyhow::Error> {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::from_default_env()
-                .add_directive(tracing::Level::INFO.into()),
-        )
-        .init();
-    let opt = Opt::from_args();
+    if std::env::var_os("RUST_LOG").is_none() {
+        std::env::set_var("RUST_LOG", "info");
+    }
+    tracing_subscriber::fmt::init();
+    let opt = Opt::parse();
 
     let token = std::env::var("GITHUB_ACCESS_TOKEN")?;
     let mut from = opt.from.map(|from| {

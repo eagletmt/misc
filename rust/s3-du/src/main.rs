@@ -1,16 +1,16 @@
-use structopt::StructOpt as _;
+use clap::Parser as _;
 
-#[derive(Debug, structopt::StructOpt)]
+#[derive(Debug, clap::Parser)]
 struct Opt {
-    #[structopt(short, long)]
+    #[clap(short, long)]
     bucket: String,
-    #[structopt(short, long)]
+    #[clap(short, long)]
     prefix: String,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let opt = Opt::from_args();
+    let opt = Opt::parse();
 
     let shared_config = aws_config::load_from_env().await;
     let s3_client = aws_sdk_s3::Client::new(&shared_config);

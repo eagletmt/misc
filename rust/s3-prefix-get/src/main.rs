@@ -1,21 +1,21 @@
 use bytes::Buf as _;
+use clap::Parser as _;
 use futures::StreamExt as _;
-use structopt::StructOpt as _;
 use tokio::io::AsyncWriteExt as _;
 
-#[derive(structopt::StructOpt)]
+#[derive(clap::Parser)]
 struct Opt {
-    #[structopt(short, long)]
+    #[clap(short, long)]
     bucket: String,
-    #[structopt(short, long)]
+    #[clap(short, long)]
     prefix: String,
-    #[structopt(short, long)]
+    #[clap(short, long)]
     output_dir: std::path::PathBuf,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let opt = Opt::from_args();
+    let opt = Opt::parse();
     let fs_prefix = format!("{}/", opt.prefix.rsplitn(2, '/').last().unwrap());
 
     let shared_config = aws_config::load_from_env().await;

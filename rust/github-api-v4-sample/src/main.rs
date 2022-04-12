@@ -15,15 +15,15 @@ struct AppInstallationAccessToken {
     token: String,
 }
 
-#[derive(structopt::StructOpt)]
+#[derive(Debug, clap::Parser)]
 struct Opt {
-    #[structopt(short, long)]
+    #[clap(short, long)]
     private_key: String,
-    #[structopt(short, long)]
+    #[clap(short, long)]
     app_id: u64,
-    #[structopt(short, long)]
+    #[clap(short, long)]
     owner: String,
-    #[structopt(short, long)]
+    #[clap(short, long)]
     name: String,
 }
 
@@ -38,9 +38,9 @@ struct LatestTarballQuery;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    env_logger::init();
-    use structopt::StructOpt as _;
-    let opt = Opt::from_args();
+    tracing_subscriber::fmt::init();
+    use clap::Parser as _;
+    let opt = Opt::parse();
 
     let client = reqwest::Client::builder()
         .user_agent("github-api-v4-sample")
@@ -103,15 +103,14 @@ async fn main() -> Result<(), anyhow::Error> {
     if let Some(errors) = resp.errors {
         return Err(anyhow::anyhow!("GraphQL error: {:?}", errors));
     }
-    if let Some(
-        latest_tarball_query::LatestTarballQueryRepositoryDefaultBranchRefTargetOn::Commit(commit),
-    ) = resp
+    if let Some(latest_tarball_query::LatestTarballQueryRepositoryDefaultBranchRefTarget::Commit(
+        commit,
+    )) = resp
         .data
         .as_ref()
         .and_then(|data| data.repository.as_ref())
         .and_then(|repo| repo.default_branch_ref.as_ref())
         .and_then(|r| r.target.as_ref())
-        .map(|target| &target.on)
     {
         println!("{}", commit.tarball_url);
     } else {
