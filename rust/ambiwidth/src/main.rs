@@ -59,7 +59,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut ranges = Vec::new();
     let mut cr = CharRange { start: 0, end: 0 };
     for line in body.lines() {
-        if let Some(caps) = single_re.captures(&line) {
+        if let Some(caps) = single_re.captures(line) {
             let c = u32::from_str_radix(caps.get(1).unwrap().as_str(), 16)?;
             if cr.end == c {
                 cr.end += 1;
@@ -70,7 +70,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     end: c + 1,
                 };
             }
-        } else if let Some(caps) = multi_re.captures(&line) {
+        } else if let Some(caps) = multi_re.captures(line) {
             let c1 = u32::from_str_radix(caps.get(1).unwrap().as_str(), 16)?;
             let c2 = u32::from_str_radix(caps.get(2).unwrap().as_str(), 16)?;
             if cr.end == c1 {

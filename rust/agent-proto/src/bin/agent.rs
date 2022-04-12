@@ -21,7 +21,7 @@ impl agent_proto::agent_service_server::AgentService for Agent {
 
 // Do not use tokio::main because fork(2) inside Tokio runtime behaves badly
 fn main() -> Result<(), anyhow::Error> {
-    env_logger::init();
+    tracing_subscriber::fmt::init();
     nix::sys::stat::umask(nix::sys::stat::Mode::from_bits(0o077).unwrap());
 
     let socket_dir = tempfile::Builder::new().prefix("agent-proto-").tempdir()?;
@@ -64,21 +64,13 @@ fn main() -> Result<(), anyhow::Error> {
 
     let rt = tokio::runtime::Runtime::new()?;
     rt.block_on(async {
-        use futures::TryFutureExt as _;
-
-        let incoming = {
-            let uds = tokio::net::UnixListener::bind(&socket_path)?;
-            async_stream::stream! {
-                while let item = uds.accept().map_ok(|(st, _)| UnixStream(st)).await {
-                    yield item;
-                }
-            }
-        };
+        let uds = tokio::net::UnixListener::bind(&socket_path)?;
+        let uds_stream = tokio_stream::wrappers::UnixListenerStream::new(uds);
 
         let agent = Agent {
             total: std::sync::Arc::new(std::sync::Mutex::new(0)),
         };
-        log::info!(
+        tracing::info!(
             "Starting server {} (pid: {})",
             socket_path.display(),
             child_pid,
@@ -87,9 +79,9 @@ fn main() -> Result<(), anyhow::Error> {
             .add_service(agent_proto::agent_service_server::AgentServiceServer::new(
                 agent,
             ))
-            .serve_with_incoming_shutdown(incoming, shutdown())
+            .serve_with_incoming_shutdown(uds_stream, shutdown())
             .await?;
-        log::info!("Exiting");
+        tracing::info!("Exiting");
         Ok(())
     })
 }
@@ -103,44 +95,5 @@ async fn shutdown() {
         _ = sigint.recv() => "SIGINT",
         _ = sigterm.recv() => "SIGTERM",
     };
-    log::info!("Got {}", sig);
-}
-
-#[derive(Debug)]
-struct UnixStream(tokio::net::UnixStream);
-
-impl tonic::transport::server::Connected for UnixStream {}
-
-impl tokio::io::AsyncRead for UnixStream {
-    fn poll_read(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-        buf: &mut tokio::io::ReadBuf<'_>,
-    ) -> std::task::Poll<std::io::Result<()>> {
-        std::pin::Pin::new(&mut self.0).poll_read(cx, buf)
-    }
-}
-
-impl tokio::io::AsyncWrite for UnixStream {
-    fn poll_write(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-        buf: &[u8],
-    ) -> std::task::Poll<std::io::Result<usize>> {
-        std::pin::Pin::new(&mut self.0).poll_write(cx, buf)
-    }
-
-    fn poll_flush(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<std::io::Result<()>> {
-        std::pin::Pin::new(&mut self.0).poll_flush(cx)
-    }
-
-    fn poll_shutdown(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<std::io::Result<()>> {
-        std::pin::Pin::new(&mut self.0).poll_shutdown(cx)
-    }
+    tracing::info!("Got {}", sig);
 }

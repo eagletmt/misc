@@ -2,7 +2,6 @@ use bytes::Buf as _;
 use bytes::BufMut as _;
 use tokio::io::AsyncReadExt as _;
 use tokio::io::AsyncWriteExt as _;
-use tokio_rustls::rustls::Session as _;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -10,26 +9,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nth(1)
         .unwrap_or_else(|| "google.com".to_owned());
     let tcp_stream = tokio::net::TcpStream::connect((host.clone(), 443)).await?;
-    let mut tls_config = tokio_rustls::rustls::ClientConfig::default();
-    tls_config
-        .root_store
-        .add_server_trust_anchors(&webpki_roots::TLS_SERVER_ROOTS);
+    let mut root_store = tokio_rustls::rustls::RootCertStore::empty();
+    root_store.add_server_trust_anchors(webpki_roots::TLS_SERVER_ROOTS.0.iter().map(|ta| {
+        tokio_rustls::rustls::OwnedTrustAnchor::from_subject_spki_name_constraints(
+            ta.subject,
+            ta.spki,
+            ta.name_constraints,
+        )
+    }));
+    let mut tls_config = tokio_rustls::rustls::ClientConfig::builder()
+        .with_safe_defaults()
+        .with_root_certificates(root_store)
+        .with_no_client_auth();
     tls_config.alpn_protocols.push(b"h2".to_vec());
     tls_config.key_log = std::sync::Arc::new(tokio_rustls::rustls::KeyLogFile::new());
     let connector = tokio_rustls::TlsConnector::from(std::sync::Arc::new(tls_config));
     let tls_stream = connector
         .connect(
-            tokio_rustls::webpki::DNSNameRef::try_from_ascii_str(&host)?,
+            tokio_rustls::rustls::ServerName::try_from(host.as_str())?,
             tcp_stream,
         )
         .await?;
     let (_, session) = tls_stream.get_ref();
-    println!("Protocol version: {:?}", session.get_protocol_version());
+    println!("Protocol version: {:?}", session.protocol_version());
     println!(
         "ALPN protocol: {:?}",
-        session
-            .get_alpn_protocol()
-            .map(|p| String::from_utf8_lossy(p))
+        session.alpn_protocol().map(String::from_utf8_lossy)
     );
     let (tls_reader, mut tls_writer) = tokio::io::split(tls_stream);
     const BUF_READER_CAP: u32 = 64 * 1024;

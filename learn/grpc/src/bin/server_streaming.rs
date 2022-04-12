@@ -14,6 +14,7 @@ struct Frame<B> {
 
 #[derive(Debug, Clone, Copy)]
 struct MessagePrefix {
+    #[allow(dead_code)]
     compressed: bool,
     length: usize,
 }
