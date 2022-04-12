@@ -2,7 +2,7 @@
 name = "assert_trait"
 version = "0.1.0"
 authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -10,9 +10,10 @@ edition = "2018"
 proc-macro = true
 
 [dependencies]
-syn = "1.0"
-quote = "1.0"
+syn = "1"
+quote = "1"
 
 [dev-dependencies]
 futures = "0.3"
-tokio = { version = "0.2", features = ["full"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time", "process"] }
+tokio-stream = { version = "0.1", features = ["time"] }

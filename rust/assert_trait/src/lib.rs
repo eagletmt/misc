@@ -25,7 +25,7 @@ impl syn::parse::Parse for AssertExpr {
     }
 }
 
-fn build_assert_expr(assert_expr: AssertExpr) -> syn::export::TokenStream2 {
+fn build_assert_expr(assert_expr: AssertExpr) -> proc_macro::TokenStream {
     let type_trait_object = assert_expr.type_trait_object;
     let expr = assert_expr.expr;
     if let Some(mut generics) = assert_expr.generics {
@@ -41,10 +41,11 @@ fn build_assert_expr(assert_expr: AssertExpr) -> syn::export::TokenStream2 {
             }));
         quote::quote! {
             ({
-                fn assert#generics(x: T) -> T where T: #type_trait_object { x }
+                fn assert #generics(x: T) -> T where T: #type_trait_object { x }
                 assert
             })(#expr)
         }
+        .into()
     } else {
         quote::quote! {
             ({
@@ -52,14 +53,14 @@ fn build_assert_expr(assert_expr: AssertExpr) -> syn::export::TokenStream2 {
                 assert
             })(#expr)
         }
+        .into()
     }
 }
 
 #[proc_macro]
 pub fn assert_trait(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = syn::parse_macro_input!(tokens as AssertExpr);
-    let expanded = build_assert_expr(input);
-    proc_macro::TokenStream::from(expanded)
+    build_assert_expr(input)
 }
 
 #[cfg(test)]

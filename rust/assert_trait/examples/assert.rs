@@ -11,9 +11,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let interval = assert_trait::assert_trait!(
         futures::Stream + Unpin,
-        tokio::time::interval(tokio::time::Duration::from_secs(2))
-            .map(|i| futures::future::Either::Left(i))
-            .take(4)
+        tokio_stream::wrappers::IntervalStream::new(tokio::time::interval(
+            tokio::time::Duration::from_secs(2)
+        ))
+        .map(|i| futures::future::Either::Left(i))
+        .take(4)
     );
     let status = futures::stream::once(tokio::process::Command::new("sleep").arg("6").status())
         .map(|s| futures::future::Either::Right(s));
