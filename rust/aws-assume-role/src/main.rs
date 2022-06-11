@@ -1,17 +1,14 @@
+#[derive(Debug, clap::Parser)]
+struct Args {
+    #[clap(short, long)]
+    role_arn: String,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let matches = clap::App::new(clap::crate_name!())
-        .version(clap::crate_version!())
-        .arg(
-            clap::Arg::with_name("role-arn")
-                .short("r")
-                .long("role-arn")
-                .value_name("ROLE_ARN")
-                .takes_value(true)
-                .required(true),
-        )
-        .get_matches();
-    let role_arn = matches.value_of("role-arn").unwrap().to_owned();
+    use clap::Parser as _;
+    let args = Args::parse();
+
     let role_session_name = format!(
         "{}-{}",
         std::env::var("USER")?,
@@ -24,7 +21,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let sts_client = aws_sdk_sts::Client::new(&shared_config);
     let resp = sts_client
         .assume_role()
-        .role_arn(role_arn)
+        .role_arn(args.role_arn)
         .role_session_name(role_session_name)
         .send()
         .await?;
