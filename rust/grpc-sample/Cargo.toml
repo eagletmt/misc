@@ -2,18 +2,12 @@
 name = "grpc-sample"
 version = "0.1.0"
 authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [build-dependencies]
-tonic-build = { version = "0.2" }
+tonic-build = { version = "0.7" }
 
 [dependencies]
-tonic = "0.2"
-prost = "0.6"
-tokio = { version = "0.2", features = ["full"] }
-
-[[bin]]
-name = "greeter_client"
-
-[[bin]]
-name = "greeter_server"
+tonic = "0.7"
+prost = "0.10"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal"] }
