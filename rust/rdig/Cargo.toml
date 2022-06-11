@@ -7,4 +7,4 @@ edition = "2021"
 [dependencies]
 ansi_term = "0.12"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
-trust-dns-resolver = "0.20"
+trust-dns-resolver = "0.21"
