@@ -7,12 +7,12 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1"
-axum = "0.4"
+axum = "0.5"
 juniper = "0.15"
 juniper_hyper = "0.8"
-listenfd = "0.4"
+listenfd = "1"
 sqlx = { version = "0.5", features = ["runtime-tokio-rustls", "postgres"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-tower = "0.4.11"
-tower-http = { version = "0.2", features = ["trace"] }
+tower = "0.4"
+tower-http = { version = "0.3", features = ["trace"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
