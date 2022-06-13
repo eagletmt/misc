@@ -8,6 +8,6 @@ edition = "2021"
 [dependencies]
 
 [build-dependencies]
-bindgen = "0.59"
+bindgen = "0.60"
 lazy_static = "1"
 libc = "0.2"
