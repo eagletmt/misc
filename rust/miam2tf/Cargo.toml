@@ -2,13 +2,13 @@
 name = "miam2tf"
 version = "0.1.0"
 authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0"
+anyhow = "1"
 glob = "0.3"
 
 [build-dependencies]
-bindgen = "0.57"
+bindgen = "0.60"

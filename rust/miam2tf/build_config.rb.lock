@@ -1,7 +1,7 @@
 ---
 mruby:
-  version: 3.0.0
-  release_no: 30000
+  version: 3.1.0
+  release_no: 30100
 builds:
   host:
     https://github.com/iij/mruby-regexp-pcre.git:

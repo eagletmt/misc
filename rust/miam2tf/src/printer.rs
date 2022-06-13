@@ -28,7 +28,7 @@ where
             print_policy_document(
                 writer,
                 &format!("{}-{}", user.user_name, policy.name),
-                &policy,
+                policy,
             )?;
         }
         if !user.groups.is_empty() {
@@ -46,7 +46,7 @@ where
             writeln!(writer, "}}")?;
         }
         for policy in &user.attached_managed_policies {
-            let short_policy_name = policy.rsplitn(2, '/').next().unwrap_or_else(|| {
+            let short_policy_name = policy.rsplit_once('/').map(|(_, x)| x).unwrap_or_else(|| {
                 panic!(
                     "Invalid attached_managed_policies {} found in {} user",
                     policy, user.user_name
@@ -90,10 +90,10 @@ where
             )?;
             writeln!(writer, "}}")?;
 
-            print_policy_document(writer, &format!("{}-{}", group.name, policy.name), &policy)?;
+            print_policy_document(writer, &format!("{}-{}", group.name, policy.name), policy)?;
         }
         for policy in &group.attached_managed_policies {
-            let short_policy_name = policy.rsplitn(2, '/').next().unwrap_or_else(|| {
+            let short_policy_name = policy.rsplit_once('/').map(|(_, x)| x).unwrap_or_else(|| {
                 panic!(
                     "Invalid attached_managed_policies {} found in {} group",
                     policy, group.name
@@ -133,7 +133,7 @@ where
         writeln!(writer, "}}")?;
 
         if let Some(ref policy) = role.assume_role_policy_document {
-            print_policy_document(writer, &role.name, &policy)?;
+            print_policy_document(writer, &role.name, policy)?;
         }
 
         for policy in &role.policies {
@@ -151,10 +151,10 @@ where
             )?;
             writeln!(writer, "}}")?;
 
-            print_policy_document(writer, &format!("{}-{}", role.name, policy.name), &policy)?;
+            print_policy_document(writer, &format!("{}-{}", role.name, policy.name), policy)?;
         }
         for policy in &role.attached_managed_policies {
-            let short_policy_name = policy.rsplitn(2, '/').next().unwrap_or_else(|| {
+            let short_policy_name = policy.rsplit_once('/').map(|(_, x)| x).unwrap_or_else(|| {
                 panic!(
                     "Invalid attached_managed_policies {} found in {} role",
                     policy, role.name
