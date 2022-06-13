@@ -7,14 +7,14 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0"
+anyhow = "1"
 base64 = "0.13"
-env_logger = "0.8"
+env_logger = "0.9"
 hex = "0.4"
-netlify_lambda = "0.2"
+lambda_runtime = "0.5"
 reqwest = { version = "0.11", default-features = false, features = ["rustls-tls", "json"] }
 ring = "0.16"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 serde_urlencoded = "0.7"
-tokio = { version = "1.0", features = ["macros"] }
+tokio = { version = "1", features = ["macros"] }

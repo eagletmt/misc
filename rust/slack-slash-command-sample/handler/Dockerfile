@@ -1,4 +1,4 @@
-FROM rust:1.49 as builder
+FROM public.ecr.aws/docker/library/rust:1.61 as builder
 
 ARG BUILD_TYPE=--release
 WORKDIR /usr/src/slack-slash-command-sample

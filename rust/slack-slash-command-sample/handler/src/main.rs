@@ -40,14 +40,18 @@ impl Default for ApiGatewayV2Response {
     }
 }
 
-#[netlify_lambda::lambda]
 #[tokio::main]
-async fn main(
-    request: ApiGatewayV2Request,
-    _: netlify_lambda::Context,
-) -> Result<ApiGatewayV2Response, anyhow::Error> {
-    let _ = env_logger::try_init();
+async fn main() -> Result<(), lambda_runtime::Error> {
+    env_logger::init();
 
+    let handler = lambda_runtime::service_fn(handler);
+    lambda_runtime::run(handler).await
+}
+
+async fn handler(
+    event: lambda_runtime::LambdaEvent<ApiGatewayV2Request>,
+) -> Result<ApiGatewayV2Response, lambda_runtime::Error> {
+    let request = event.payload;
     println!("{:?}", request);
     if request.body.is_none() {
         return Ok(ApiGatewayV2Response {
@@ -147,6 +151,7 @@ fn verify_signature(
     Ok(())
 }
 
+#[allow(dead_code)]
 #[derive(Debug, serde::Deserialize)]
 struct SlashCommandParams {
     team_id: String,
@@ -229,7 +234,7 @@ struct Modal {
     blocks: Vec<Block>,
 }
 
-async fn handle_slash_command(body: String) -> Result<ApiGatewayV2Response, anyhow::Error> {
+async fn handle_slash_command(body: String) -> Result<ApiGatewayV2Response, lambda_runtime::Error> {
     let params: SlashCommandParams = match serde_urlencoded::from_str(&body) {
         Ok(p) => p,
         Err(e) => {
@@ -373,6 +378,7 @@ enum InteractivePayloadType {
     #[serde(rename = "view_submission")]
     ViewSubmission,
 }
+#[allow(dead_code)]
 #[derive(Debug, serde::Deserialize)]
 struct InteractivePayloadUser {
     id: String,
@@ -401,7 +407,7 @@ struct SelectedOption {
     value: String,
 }
 
-async fn handle_interactive(body: String) -> Result<ApiGatewayV2Response, anyhow::Error> {
+async fn handle_interactive(body: String) -> Result<ApiGatewayV2Response, lambda_runtime::Error> {
     let params: PayloadParams = match serde_urlencoded::from_str(&body) {
         Ok(p) => p,
         Err(e) => {
@@ -463,6 +469,7 @@ async fn handle_interactive(body: String) -> Result<ApiGatewayV2Response, anyhow
     })
 }
 
+#[allow(dead_code)]
 #[derive(Debug, serde::Deserialize)]
 struct ExternalSelectPayload {
     #[serde(rename = "type")]
@@ -479,7 +486,9 @@ struct OptionResponse {
     value: String,
 }
 
-async fn handle_external_select(body: String) -> Result<ApiGatewayV2Response, anyhow::Error> {
+async fn handle_external_select(
+    body: String,
+) -> Result<ApiGatewayV2Response, lambda_runtime::Error> {
     let params: PayloadParams = match serde_urlencoded::from_str(&body) {
         Ok(p) => p,
         Err(e) => {
