@@ -9,7 +9,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1"
 clap = { version = "3", features = ["derive"] }
-graphql_client = "0.10"
+graphql_client = { version = "0.11", features = ["reqwest-rustls"] }
 jsonwebtoken = "8"
 reqwest = { version = "0.11", default-features = false, features = ["rustls-tls", "json", "gzip"] }
 serde = { version = "1", features = ["derive"] }

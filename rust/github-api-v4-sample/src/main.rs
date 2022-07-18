@@ -27,6 +27,7 @@ struct Opt {
     name: String,
 }
 
+#[allow(clippy::upper_case_acronyms)]
 type URI = String;
 #[derive(graphql_client::GraphQLQuery)]
 #[graphql(
