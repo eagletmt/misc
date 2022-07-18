@@ -1,6 +1,7 @@
+use anyhow::Context as _;
 use std::io::Write as _;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> anyhow::Result<()> {
     let mut args = std::env::args();
     let me = args.next().unwrap();
     let name = args.next().unwrap_or_else(|| {
@@ -22,15 +23,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .arg(&name)
         .arg("--folderid")
         .arg(folderid)
-        .output()?;
+        .output()
+        .context("`bw list items` failed")?;
     if !output.status.success() {
         eprintln!("`bw list items` failed");
-        std::io::stdout().write_all(&output.stdout)?;
-        std::io::stderr().write_all(&output.stderr)?;
+        std::io::stdout()
+            .write_all(&output.stdout)
+            .context("failed to write `bw list items` stdout")?;
+        std::io::stderr()
+            .write_all(&output.stderr)
+            .context("failed to write `bw list items` stderr")?;
         std::process::exit(output.status.code().unwrap_or(1));
     }
 
-    let items: Vec<Item> = serde_json::from_slice(&output.stdout)?;
+    let items: Vec<Item> = serde_json::from_slice(&output.stdout).with_context(|| {
+        format!(
+            "failed to deserialize `bw list items` output: {}",
+            String::from_utf8_lossy(&output.stdout)
+        )
+    })?;
     let mut envs = Vec::new();
     for item in items.into_iter() {
         if item.name == name {
@@ -59,7 +70,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut cmd = std::process::Command::new(&prog);
     cmd.envs(envs).args(args);
-    let status = exec(cmd)?;
+    let status = exec(cmd).context("failed to exec given command")?;
     if !status.success() {
         std::process::exit(status.code().unwrap_or(1));
     }
@@ -67,16 +78,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[cfg(unix)]
-fn exec(
-    mut cmd: std::process::Command,
-) -> Result<std::process::ExitStatus, Box<dyn std::error::Error>> {
+fn exec(mut cmd: std::process::Command) -> anyhow::Result<std::process::ExitStatus> {
     use std::os::unix::process::CommandExt as _;
-    Err(Box::new(cmd.exec()))
+    Err(anyhow::Error::from(cmd.exec()))
 }
 #[cfg(windows)]
-fn exec(
-    mut cmd: std::process::Command,
-) -> Result<std::process::ExitStatus, Box<dyn std::error::Error>> {
+fn exec(mut cmd: std::process::Command) -> anyhow::Result<std::process::ExitStatus> {
     Ok(cmd.status()?)
 }
 
