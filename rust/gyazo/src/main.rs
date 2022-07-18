@@ -17,11 +17,11 @@ async fn upload(
     s3_client: &aws_sdk_s3::Client,
     path: &std::path::Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    use md5::Digest as _;
     let image = tokio::fs::read(path).await?;
-    let mut md5 = crypto::md5::Md5::new();
-    use crypto::digest::Digest;
-    md5.input(&image);
-    let digest = md5.result_str();
+    let mut hasher = md5::Md5::new();
+    hasher.update(&image);
+    let digest = format!("{:x}", hasher.finalize());
 
     let image_key = format!(
         "{}.{}",

@@ -5,8 +5,8 @@ authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
 edition = "2021"
 
 [dependencies]
+aws-config = "0.15"
+aws-sdk-s3 = "0.15"
 futures = "0.3"
-aws-config = "0.9"
-aws-sdk-s3 = "0.9"
-rust-crypto = "0.2"
+md-5 = "0.10"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "fs"] }
