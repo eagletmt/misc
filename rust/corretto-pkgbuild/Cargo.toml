@@ -1,0 +1,19 @@
+[package]
+name = "corretto-pkgbuild"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1"
+clap = { version = "3", features = ["derive"] }
+handlebars = "4"
+octocrab = { version = "0.17", default-features = false, features = ["rustls"] }
+pulldown-cmark = { version = "0.9", default-features = false }
+scraper = { version = "0.13", default-features = false }
+serde = { version = "1", features = ["derive"] }
+tendril = "0.4"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
