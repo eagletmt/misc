@@ -11,7 +11,6 @@ clap = { version = "3", features = ["derive"] }
 handlebars = "4"
 octocrab = { version = "0.17", default-features = false, features = ["rustls"] }
 pulldown-cmark = { version = "0.9", default-features = false }
-scraper = { version = "0.13", default-features = false }
 serde = { version = "1", features = ["derive"] }
 tendril = "0.4"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }

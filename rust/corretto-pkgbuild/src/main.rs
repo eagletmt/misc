@@ -1,4 +1,4 @@
-#[derive(Debug, clap::Parser)]
+#[derive(Debug, clap::Parser, serde::Serialize)]
 struct Args {
     /// JDK version
     #[clap(short, long)]
@@ -8,15 +8,21 @@ struct Args {
     pkgrel: u8,
 }
 
-#[derive(Debug, serde::Serialize)]
-struct Release {
-    jdk_version: u8,
-    pkgrel: u8,
-    pkgver: String,
+#[derive(Debug, PartialEq, serde::Serialize)]
+struct Tarballs {
     x86_64_download: String,
     x86_64_checksum_sha256: String,
     aarch64_download: String,
     aarch64_checksum_sha256: String,
+}
+
+#[derive(Debug, serde::Serialize)]
+struct Pkgbuild {
+    #[serde(flatten)]
+    args: Args,
+    pkgver: String,
+    #[serde(flatten)]
+    tarballs: Tarballs,
 }
 
 #[tokio::main]
@@ -42,7 +48,7 @@ async fn main() -> anyhow::Result<()> {
         .send()
         .await?;
 
-    let release = loop {
+    let pkgbuild = loop {
         let release = page
             .items
             .into_iter()
@@ -53,8 +59,12 @@ async fn main() -> anyhow::Result<()> {
         } else if release.prerelease {
             tracing::info!("Skip pre-release: {}", release.html_url);
         } else if let Some(body) = release.body {
-            if let Some(r) = extract_release(&args, release.tag_name, &body)? {
-                break r;
+            if let Some(tarballs) = extract_tarballs(&body)? {
+                break Pkgbuild {
+                    args,
+                    pkgver: release.tag_name,
+                    tarballs,
+                };
             }
         }
 
@@ -65,71 +75,127 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let stdout = std::io::stdout().lock();
-    handlebars.render_to_write("PKGBUILD", &release, stdout)?;
+    handlebars.render_to_write("PKGBUILD", &pkgbuild, stdout)?;
 
     Ok(())
 }
 
-fn extract_release(args: &Args, tag_name: String, body: &str) -> anyhow::Result<Option<Release>> {
-    let parser = pulldown_cmark::Parser::new_ext(body, pulldown_cmark::Options::ENABLE_TABLES);
-    let mut body_html = String::new();
-    pulldown_cmark::html::push_html(&mut body_html, parser);
-    let fragment = scraper::Html::parse_fragment(&body_html);
-    let row_selector = scraper::Selector::parse("table tbody tr").unwrap();
-    let col_selector = scraper::Selector::parse("td").unwrap();
-    let a_selector = scraper::Selector::parse("a[href]").unwrap();
+#[derive(Debug)]
+enum Node<'a> {
+    Text(pulldown_cmark::CowStr<'a>),
+    Code(pulldown_cmark::CowStr<'a>),
+    Html(pulldown_cmark::CowStr<'a>),
+    Element(Element<'a>),
+}
+
+#[derive(Debug)]
+struct Element<'a> {
+    tag: pulldown_cmark::Tag<'a>,
+    children: Vec<Node<'a>>,
+}
+
+fn extract_tarballs(body: &str) -> anyhow::Result<Option<Tarballs>> {
+    let mut parser = pulldown_cmark::Parser::new_ext(body, pulldown_cmark::Options::ENABLE_TABLES);
+    let nodes = build_nodes(&mut parser);
+    let table = nodes
+        .into_iter()
+        .find_map(|n| {
+            if let Node::Element(Element {
+                tag: pulldown_cmark::Tag::Table(_),
+                children: nodes,
+            }) = n
+            {
+                Some(nodes)
+            } else {
+                None
+            }
+        })
+        .ok_or_else(|| anyhow::anyhow!("Table element is not found"))?;
+    let rows = table.into_iter().filter_map(|n| {
+        if let Node::Element(Element {
+            tag: pulldown_cmark::Tag::TableRow,
+            children: cells,
+        }) = n
+        {
+            Some(cells)
+        } else {
+            None
+        }
+    });
 
     #[derive(Debug)]
     struct Entry {
         download: String,
         checksum_sha256: String,
     }
+
     let mut x86_64_entry = None;
     let mut aarch64_entry = None;
-    for tr in fragment.select(&row_selector) {
-        let mut tds = tr.select(&col_selector);
-        let platform_td = tds
+    for row in rows {
+        let mut cells = row.into_iter().filter_map(|n| {
+            if let Node::Element(Element {
+                tag: pulldown_cmark::Tag::TableCell,
+                children: texts,
+            }) = n
+            {
+                Some(texts)
+            } else {
+                None
+            }
+        });
+        let platform = textify(
+            cells
+                .next()
+                .ok_or_else(|| anyhow::anyhow!("Platform cell is not found"))?,
+        );
+        let _type = cells
             .next()
-            .ok_or_else(|| anyhow::anyhow!("Platform column is not found"))?;
-        let platform = tendril::StrTendril::from_iter(platform_td.text());
-
-        let _type_td = tds
+            .ok_or_else(|| anyhow::anyhow!("Type cell is not found"))?;
+        let download = cells
             .next()
-            .ok_or_else(|| anyhow::anyhow!("Type column is not found"))?;
-
-        let download_td = tds
+            .ok_or_else(|| anyhow::anyhow!("Download cell is not found"))?;
+        let checksum = cells
             .next()
-            .ok_or_else(|| anyhow::anyhow!("Download Link column is not found"))?;
-        let download_a = download_td
-            .select(&a_selector)
+            .ok_or_else(|| anyhow::anyhow!("Checksum cell is not found"))?;
+        let sigfile = cells
             .next()
-            .ok_or_else(|| anyhow::anyhow!("a tag in Download Link is not found"))?;
-        let download = download_a.value().attr("href").unwrap();
-
-        let checksum_td = tds
-            .next()
-            .ok_or_else(|| anyhow::anyhow!("Checksum column is not found"))?;
-        let checksum = tendril::StrTendril::from_iter(checksum_td.text());
-        let checksum_sha256 = checksum.rsplit(" / ").next().unwrap();
-
-        if &*platform == "Linux x64" {
-            x86_64_entry = Some(Entry {
-                download: download.to_owned(),
-                checksum_sha256: checksum_sha256.to_owned(),
-            });
-        } else if &*platform == "Linux aarch64" {
-            aarch64_entry = Some(Entry {
-                download: download.to_owned(),
-                checksum_sha256: checksum_sha256.to_owned(),
-            });
+            .ok_or_else(|| anyhow::anyhow!("Sig File cell is not found"))?;
+        if !sigfile.is_empty() {
+            let download = download
+                .into_iter()
+                .find_map(|n| {
+                    if let Node::Element(Element {
+                        tag: pulldown_cmark::Tag::Link(_, link, _),
+                        ..
+                    }) = n
+                    {
+                        Some(link)
+                    } else {
+                        None
+                    }
+                })
+                .ok_or_else(|| anyhow::anyhow!("Link element is not found in Download cell"))?;
+            let checksum_sha256 = checksum
+                .into_iter()
+                .rev()
+                .find_map(|n| if let Node::Code(s) = n { Some(s) } else { None })
+                .ok_or_else(|| anyhow::anyhow!("Code node is not found in Checksum cell"))?;
+            if &*platform == "Linux x64" {
+                x86_64_entry = Some(Entry {
+                    download: download.into_string(),
+                    checksum_sha256: checksum_sha256.into_string(),
+                });
+            } else if &*platform == "Linux aarch64" {
+                aarch64_entry = Some(Entry {
+                    download: download.into_string(),
+                    checksum_sha256: checksum_sha256.into_string(),
+                });
+            }
         }
     }
 
     if let (Some(x86_64_entry), Some(aarch64_entry)) = (x86_64_entry, aarch64_entry) {
-        Ok(Some(Release {
-            jdk_version: args.jdk_version,
-            pkgrel: args.pkgrel,
-            pkgver: tag_name,
+        Ok(Some(Tarballs {
             x86_64_download: x86_64_entry.download,
             x86_64_checksum_sha256: x86_64_entry.checksum_sha256,
             aarch64_download: aarch64_entry.download,
@@ -137,5 +203,74 @@ fn extract_release(args: &Args, tag_name: String, body: &str) -> anyhow::Result<
         }))
     } else {
         Ok(None)
+    }
+}
+
+fn textify(nodes: Vec<Node>) -> tendril::StrTendril {
+    let mut ret = tendril::StrTendril::new();
+    for node in nodes {
+        match node {
+            Node::Element(Element { children, .. }) => {
+                ret.push_tendril(&textify(children));
+            }
+            Node::Text(s) | Node::Code(s) | Node::Html(s) => {
+                ret.push_slice(&s);
+            }
+        }
+    }
+    ret
+}
+
+fn build_nodes<'a>(parser: &mut pulldown_cmark::Parser<'a, '_>) -> Vec<Node<'a>> {
+    let mut nodes = Vec::new();
+    while let Some(event) = parser.next() {
+        match event {
+            pulldown_cmark::Event::Start(tag) => {
+                let children = build_nodes(parser);
+                nodes.push(Node::Element(Element { tag, children }));
+            }
+            pulldown_cmark::Event::End(_) => {
+                return nodes;
+            }
+            pulldown_cmark::Event::Text(s) => {
+                nodes.push(Node::Text(s));
+            }
+            pulldown_cmark::Event::Code(s) => {
+                nodes.push(Node::Code(s));
+            }
+            pulldown_cmark::Event::Html(s) => {
+                nodes.push(Node::Html(s));
+            }
+            e => {
+                todo!("{:?}", e)
+            }
+        }
+    }
+    nodes
+}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn extract_tarballs_from_release() {
+        let body = include_str!("../test/corretto-8.342.07.4.md");
+        let tarballs = super::extract_tarballs(body).unwrap().unwrap();
+        assert_eq!(tarballs.x86_64_download, "https://corretto.aws/downloads/resources/8.342.07.4/amazon-corretto-8.342.07.4-linux-x64.tar.gz");
+        assert_eq!(
+            tarballs.x86_64_checksum_sha256,
+            "f10fc46f42df58cf26a4689a7016aa610b691ad4e8be7c349f8651dec79d4e41"
+        );
+        assert_eq!(tarballs.aarch64_download, "https://corretto.aws/downloads/resources/8.342.07.4/amazon-corretto-8.342.07.4-linux-aarch64.tar.gz");
+        assert_eq!(
+            tarballs.aarch64_checksum_sha256,
+            "2d454c4804fc2ee5a2aef9f517ca6c2b85dee7728d74edf20f85a35681b2d143"
+        );
+    }
+
+    #[test]
+    fn return_none_if_no_linux_platforms() {
+        let body = include_str!("../test/corretto-11.0.16.8.3.md");
+        let tarballs = super::extract_tarballs(body).unwrap();
+        assert_eq!(tarballs, None);
     }
 }
