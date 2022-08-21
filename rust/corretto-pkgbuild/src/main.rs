@@ -94,23 +94,38 @@ struct Element<'a> {
     children: Vec<Node<'a>>,
 }
 
+fn skip_until_tag<'a, F>(parser: &mut pulldown_cmark::Parser<'a, '_>, f: F) -> anyhow::Result<bool>
+where
+    F: Fn(pulldown_cmark::Tag<'a>) -> bool,
+{
+    let mut depth = 0;
+    for event in parser {
+        match event {
+            pulldown_cmark::Event::Start(tag) => {
+                if depth == 0 && f(tag) {
+                    return Ok(true);
+                } else {
+                    depth += 1;
+                }
+            }
+            pulldown_cmark::Event::End(_) => {
+                depth -= 1;
+            }
+            _ => {}
+        }
+    }
+    Ok(false)
+}
+
 fn extract_tarballs(body: &str) -> anyhow::Result<Option<Tarballs>> {
     let mut parser = pulldown_cmark::Parser::new_ext(body, pulldown_cmark::Options::ENABLE_TABLES);
-    let nodes = build_nodes(&mut parser);
-    let table = nodes
-        .into_iter()
-        .find_map(|n| {
-            if let Node::Element(Element {
-                tag: pulldown_cmark::Tag::Table(_),
-                children: nodes,
-            }) = n
-            {
-                Some(nodes)
-            } else {
-                None
-            }
-        })
-        .ok_or_else(|| anyhow::anyhow!("Table element is not found"))?;
+    anyhow::ensure!(
+        skip_until_tag(&mut parser, |tag| {
+            matches!(tag, pulldown_cmark::Tag::Table(_))
+        })?,
+        "Table element is not found"
+    );
+    let table = build_nodes(&mut parser);
     let rows = table.into_iter().filter_map(|n| {
         if let Node::Element(Element {
             tag: pulldown_cmark::Tag::TableRow,
