@@ -85,44 +85,53 @@ where
         match field_type.as_ref() {
             parquet::schema::types::Type::PrimitiveType { physical_type, .. } => {
                 match physical_type {
-                    parquet::basic::Type::INT32 => {
-                        convert_column(
-                            field_type,
-                            props,
-                            &rows,
-                            &mut row_group_writer,
-                            int32_writer,
-                        )?;
+                    parquet::basic::Type::BOOLEAN => convert_column(
+                        field_type,
+                        props,
+                        &rows,
+                        &mut row_group_writer,
+                        boolean_writer,
+                    ),
+                    parquet::basic::Type::INT32 => convert_column(
+                        field_type,
+                        props,
+                        &rows,
+                        &mut row_group_writer,
+                        int32_writer,
+                    ),
+                    parquet::basic::Type::INT64 => convert_column(
+                        field_type,
+                        props,
+                        &rows,
+                        &mut row_group_writer,
+                        int64_writer,
+                    ),
+                    parquet::basic::Type::INT96 => anyhow::bail!("INT96 is not supported"),
+                    parquet::basic::Type::FLOAT => convert_column(
+                        field_type,
+                        props,
+                        &rows,
+                        &mut row_group_writer,
+                        float_writer,
+                    ),
+                    parquet::basic::Type::DOUBLE => convert_column(
+                        field_type,
+                        props,
+                        &rows,
+                        &mut row_group_writer,
+                        double_writer,
+                    ),
+                    parquet::basic::Type::BYTE_ARRAY => convert_column(
+                        field_type,
+                        props,
+                        &rows,
+                        &mut row_group_writer,
+                        byte_array_writer,
+                    ),
+                    parquet::basic::Type::FIXED_LEN_BYTE_ARRAY => {
+                        anyhow::bail!("FIXED_LEN_BYTE_ARRAY is not supported")
                     }
-                    parquet::basic::Type::INT64 => {
-                        convert_column(
-                            field_type,
-                            props,
-                            &rows,
-                            &mut row_group_writer,
-                            int64_writer,
-                        )?;
-                    }
-                    parquet::basic::Type::DOUBLE => {
-                        convert_column(
-                            field_type,
-                            props,
-                            &rows,
-                            &mut row_group_writer,
-                            double_writer,
-                        )?;
-                    }
-                    parquet::basic::Type::BYTE_ARRAY => {
-                        convert_column(
-                            field_type,
-                            props,
-                            &rows,
-                            &mut row_group_writer,
-                            byte_array_writer,
-                        )?;
-                    }
-                    _ => unimplemented!("physical type {} is not supported", physical_type),
-                }
+                }?
             }
             _ => unimplemented!("non-primitive type is not supported"),
         }
@@ -200,6 +209,27 @@ where
     Ok(())
 }
 
+fn boolean_writer(
+    field_type: &parquet::schema::types::Type,
+    col_writer: &mut parquet::file::writer::SerializedColumnWriter,
+    json_values: Vec<Option<&serde_json::Value>>,
+) -> anyhow::Result<()> {
+    generic_writer(
+        field_type,
+        col_writer.typed::<parquet::data_type::BoolType>(),
+        json_values,
+        |json_value| {
+            json_value.as_bool().with_context(|| {
+                format!(
+                    "{} column expects BOOLEAN value but got {}",
+                    field_type.name(),
+                    json_value
+                )
+            })
+        },
+    )
+}
+
 fn int32_writer(
     field_type: &parquet::schema::types::Type,
     col_writer: &mut parquet::file::writer::SerializedColumnWriter,
@@ -240,34 +270,56 @@ fn int64_writer(
         field_type,
         col_writer.typed::<parquet::data_type::Int64Type>(),
         json_values,
-        |json_value| {
-            let n = match field_type.get_basic_info().converted_type() {
-                parquet::basic::ConvertedType::TIMESTAMP_MILLIS => {
-                    let s = json_value.as_str().with_context(|| {
-                        format!(
-                            "{} column expects TIMESTAMP_MILLIS but got value: {}",
-                            field_type.name(),
-                            json_value
-                        )
-                    })?;
-                    let t = chrono::DateTime::parse_from_rfc3339(s).with_context(|| {
+        |json_value| match field_type.get_basic_info().converted_type() {
+            parquet::basic::ConvertedType::TIMESTAMP_MILLIS => {
+                let s = json_value.as_str().with_context(|| {
+                    format!(
+                        "{} column expects TIMESTAMP_MILLIS but got value: {}",
+                        field_type.name(),
+                        json_value
+                    )
+                })?;
+                chrono::DateTime::parse_from_rfc3339(s)
+                    .with_context(|| {
                         format!(
                             "failed to parse {} column TIMESTAMP_MILLIS value: {}",
                             field_type.name(),
                             s
                         )
-                    })?;
-                    t.timestamp() * 1000 + t.timestamp_subsec_millis() as i64
-                }
-                _ => json_value.as_i64().with_context(|| {
+                    })
+                    .map(|t| t.timestamp() * 1000 + t.timestamp_subsec_millis() as i64)
+            }
+            _ => json_value.as_i64().with_context(|| {
+                format!(
+                    "{} column expects INT64 but got {}",
+                    field_type.name(),
+                    json_value
+                )
+            }),
+        },
+    )
+}
+
+fn float_writer(
+    field_type: &parquet::schema::types::Type,
+    col_writer: &mut parquet::file::writer::SerializedColumnWriter,
+    json_values: Vec<Option<&serde_json::Value>>,
+) -> anyhow::Result<()> {
+    generic_writer(
+        field_type,
+        col_writer.typed::<parquet::data_type::FloatType>(),
+        json_values,
+        |json_value| {
+            json_value
+                .as_f64()
+                .with_context(|| {
                     format!(
-                        "{} column expects INT64 but got {}",
+                        "{} column expects FLOAT value bot got {}",
                         field_type.name(),
                         json_value
                     )
-                })?,
-            };
-            Ok(n)
+                })
+                .map(|n| n as f32)
         },
     )
 }
@@ -282,14 +334,13 @@ fn double_writer(
         col_writer.typed::<parquet::data_type::DoubleType>(),
         json_values,
         |json_value| {
-            let n = json_value.as_f64().with_context(|| {
+            json_value.as_f64().with_context(|| {
                 format!(
                     "{} column expects DOUBLE value bot got {}",
                     field_type.name(),
                     json_value
                 )
-            })?;
-            Ok(n)
+            })
         },
     )
 }
@@ -304,14 +355,16 @@ fn byte_array_writer(
         col_writer.typed::<parquet::data_type::ByteArrayType>(),
         json_values,
         |json_value| {
-            let s = json_value.as_str().with_context(|| {
-                format!(
-                    "{} column expects BYTE_ARRAY value bot got {}",
-                    field_type.name(),
-                    json_value
-                )
-            })?;
-            Ok(s.into())
+            json_value
+                .as_str()
+                .with_context(|| {
+                    format!(
+                        "{} column expects BYTE_ARRAY value bot got {}",
+                        field_type.name(),
+                        json_value
+                    )
+                })
+                .map(Into::into)
         },
     )
 }
@@ -331,6 +384,8 @@ mod tests {
                 optional binary s (string);
                 optional int64 t2 (timestamp(millis, true));
                 optional double d;
+                optional float f;
+                optional boolean b;
             }
         "#,
         )
@@ -342,6 +397,9 @@ mod tests {
                 "s": "2",
                 "t2": "2022-09-05T11:15:43.942Z",
                 "d": 3.4,
+                "f": 2.0,
+                "b": true,
+                "rest": "ignored",
             }),
             serde_json::json!({
                 "t": "2022-09-04T06:13:22.033Z",
@@ -366,7 +424,7 @@ mod tests {
         let reader = parquet::file::reader::SerializedFileReader::new(buf).unwrap();
         assert_eq!(reader.metadata().num_row_groups(), 1);
         let row_group = reader.metadata().row_group(0);
-        assert_eq!(row_group.num_columns(), 5);
+        assert_eq!(row_group.num_columns(), 7);
         let columns = row_group.columns();
         assert_eq!(columns[0].column_type(), parquet::basic::Type::INT64);
         assert_eq!(columns[0].num_values(), 3);
@@ -378,6 +436,10 @@ mod tests {
         assert_eq!(columns[3].num_values(), 3);
         assert_eq!(columns[4].column_type(), parquet::basic::Type::DOUBLE);
         assert_eq!(columns[4].num_values(), 3);
+        assert_eq!(columns[5].column_type(), parquet::basic::Type::FLOAT);
+        assert_eq!(columns[5].num_values(), 3);
+        assert_eq!(columns[6].column_type(), parquet::basic::Type::BOOLEAN);
+        assert_eq!(columns[6].num_values(), 3);
 
         let rows: Vec<parquet::record::Row> = reader.get_row_iter(None).unwrap().collect();
         assert_eq!(
@@ -388,6 +450,8 @@ mod tests {
                 "s": "2",
                 "t2": "2022-09-05 11:15:43 +00:00",
                 "d": 3.4,
+                "f": 2.0,
+                "b": true,
             })
         );
         assert_eq!(
@@ -398,6 +462,8 @@ mod tests {
                 "s": null,
                 "t2": null,
                 "d": null,
+                "f": null,
+                "b": null,
             })
         );
         assert_eq!(
@@ -408,6 +474,8 @@ mod tests {
                 "s": null,
                 "t2": null,
                 "d": null,
+                "f": null,
+                "b": null,
             })
         );
     }
