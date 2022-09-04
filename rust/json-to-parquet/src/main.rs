@@ -1,0 +1,434 @@
+use anyhow::Context as _;
+use clap::Parser as _;
+use std::io::BufRead as _;
+
+#[derive(Debug, clap::Parser)]
+struct Args {
+    /// Path to Parquet schema file
+    #[clap(short, long)]
+    schema: std::path::PathBuf,
+    /// Path to input JSON Lines file
+    #[clap(short, long)]
+    input: std::path::PathBuf,
+    /// Path to output Parquet file
+    #[clap(short, long)]
+    output: std::path::PathBuf,
+}
+
+fn main() -> anyhow::Result<()> {
+    let args = Args::parse();
+
+    let schema_str = std::fs::read_to_string(&args.schema).with_context(|| {
+        format!(
+            "failed to read Parquet schema file {}",
+            args.schema.display()
+        )
+    })?;
+    let schema = parquet::schema::parser::parse_message_type(&schema_str)
+        .context("failed to parse Parquet schema")?;
+    let schema = std::sync::Arc::new(schema);
+
+    let mut rows = Vec::new();
+    let file = std::fs::File::open(&args.input).with_context(|| {
+        format!(
+            "failed to open input JSON Lines file {}",
+            args.input.display()
+        )
+    })?;
+    let reader = std::io::BufReader::new(file);
+    for line in reader.lines() {
+        let line = line.context("failed to read line from JSON Lines file")?;
+        let row: serde_json::Value = serde_json::from_str(&line)
+            .with_context(|| format!("failed to deserialize JSON {}", line))?;
+        rows.push(row);
+    }
+
+    let file = std::fs::File::create(&args.output).with_context(|| {
+        format!(
+            "failed to create output Parquet file {}",
+            args.output.display()
+        )
+    })?;
+    let props = parquet::file::properties::WriterProperties::builder()
+        .set_compression(parquet::basic::Compression::SNAPPY)
+        .build();
+    let props = std::sync::Arc::new(props);
+    let mut writer = parquet::file::writer::SerializedFileWriter::new(file, schema.clone(), props)
+        .context("failed to initialize SerializedFileWriter")?;
+    json_to_parquet(&schema, rows, &mut writer)?;
+    writer
+        .close()
+        .context("failed to close SerializedFileWriter")?;
+
+    Ok(())
+}
+
+fn json_to_parquet<W>(
+    schema: &parquet::schema::types::Type,
+    rows: Vec<serde_json::Value>,
+    writer: &mut parquet::file::writer::SerializedFileWriter<W>,
+) -> anyhow::Result<()>
+where
+    W: std::io::Write,
+{
+    let mut row_group_writer = writer
+        .next_row_group()
+        .context("failed to initialize next SerializedRowGroupWriter")?;
+
+    for field_type in schema.get_fields() {
+        match field_type.as_ref() {
+            parquet::schema::types::Type::PrimitiveType { physical_type, .. } => {
+                match physical_type {
+                    parquet::basic::Type::INT32 => {
+                        convert_column(field_type, &rows, &mut row_group_writer, int32_writer)?;
+                    }
+                    parquet::basic::Type::INT64 => {
+                        convert_column(field_type, &rows, &mut row_group_writer, int64_writer)?;
+                    }
+                    parquet::basic::Type::DOUBLE => {
+                        convert_column(field_type, &rows, &mut row_group_writer, double_writer)?;
+                    }
+                    parquet::basic::Type::BYTE_ARRAY => {
+                        convert_column(
+                            field_type,
+                            &rows,
+                            &mut row_group_writer,
+                            byte_array_writer,
+                        )?;
+                    }
+                    _ => unimplemented!("physical type {} is not supported", physical_type),
+                }
+            }
+            _ => unimplemented!("non-primitive type is not supported"),
+        }
+    }
+
+    row_group_writer
+        .close()
+        .context("failed to close SerializedRowGroupWriter")?;
+
+    Ok(())
+}
+
+fn convert_column<W, F>(
+    field_type: &parquet::schema::types::Type,
+    rows: &[serde_json::Value],
+    row_group_writer: &mut parquet::file::writer::SerializedRowGroupWriter<W>,
+    writer: F,
+) -> anyhow::Result<()>
+where
+    W: std::io::Write,
+    F: Fn(
+        &parquet::schema::types::Type,
+        &mut parquet::file::writer::SerializedColumnWriter,
+        Option<&serde_json::Value>,
+    ) -> anyhow::Result<()>,
+{
+    let mut col_writer = row_group_writer
+        .next_column()
+        .context("failed to initialize next SerializedColumnWriter")?
+        .unwrap();
+    for row in rows {
+        let value = row.get(field_type.name());
+        writer(field_type, &mut col_writer, value)?;
+    }
+    col_writer
+        .close()
+        .context("failed to close SerializedColumnWriter")?;
+    Ok(())
+}
+
+fn generic_writer<'a, T, F>(
+    field_type: &parquet::schema::types::Type,
+    col_writer: &mut parquet::column::writer::ColumnWriterImpl<'a, T>,
+    value: Option<&serde_json::Value>,
+    coerce: F,
+) -> anyhow::Result<()>
+where
+    T: parquet::data_type::DataType,
+    F: FnOnce(&serde_json::Value) -> anyhow::Result<T::T>,
+{
+    if field_type.is_optional() && (value.is_none() || value.unwrap().is_null()) {
+        col_writer
+            .write_batch(&[], Some(&[0]), None)
+            .with_context(|| {
+                format!(
+                    "failed to write {} column value of type {}: (null)",
+                    field_type.name(),
+                    T::get_physical_type(),
+                )
+            })?;
+    } else {
+        let value = value
+            .with_context(|| format!("{} column is required but not present", field_type.name()))?;
+        let v = coerce(value)?;
+        col_writer
+            .write_batch(&[v], Some(&[1]), None)
+            .with_context(|| {
+                format!(
+                    "failed to write column {} value of type {}: {}",
+                    field_type.name(),
+                    T::get_physical_type(),
+                    value
+                )
+            })?;
+    }
+    Ok(())
+}
+
+fn int32_writer(
+    field_type: &parquet::schema::types::Type,
+    col_writer: &mut parquet::file::writer::SerializedColumnWriter,
+    value: Option<&serde_json::Value>,
+) -> anyhow::Result<()> {
+    generic_writer(
+        field_type,
+        col_writer.typed::<parquet::data_type::Int32Type>(),
+        value,
+        |value| {
+            value
+                .as_i64()
+                .with_context(|| {
+                    format!(
+                        "{} column expects INT32 value but got {}",
+                        field_type.name(),
+                        value
+                    )
+                })?
+                .try_into()
+                .with_context(|| {
+                    format!(
+                        "failed to convert {} column value to INT32 type: {}",
+                        field_type.name(),
+                        value
+                    )
+                })
+        },
+    )
+}
+
+fn int64_writer(
+    field_type: &parquet::schema::types::Type,
+    col_writer: &mut parquet::file::writer::SerializedColumnWriter,
+    value: Option<&serde_json::Value>,
+) -> anyhow::Result<()> {
+    generic_writer(
+        field_type,
+        col_writer.typed::<parquet::data_type::Int64Type>(),
+        value,
+        |value| {
+            let n = match field_type.get_basic_info().converted_type() {
+                parquet::basic::ConvertedType::TIMESTAMP_MILLIS => {
+                    let s = value.as_str().with_context(|| {
+                        format!(
+                            "{} column expects TIMESTAMP_MILLIS but got value: {}",
+                            field_type.name(),
+                            value
+                        )
+                    })?;
+                    let t = chrono::DateTime::parse_from_rfc3339(s).with_context(|| {
+                        format!(
+                            "failed to parse {} column TIMESTAMP_MILLIS value: {}",
+                            field_type.name(),
+                            s
+                        )
+                    })?;
+                    t.timestamp() * 1000 + t.timestamp_subsec_millis() as i64
+                }
+                _ => value.as_i64().with_context(|| {
+                    format!(
+                        "{} column expects INT64 but got {}",
+                        field_type.name(),
+                        value
+                    )
+                })?,
+            };
+            Ok(n)
+        },
+    )
+}
+
+fn double_writer(
+    field_type: &parquet::schema::types::Type,
+    col_writer: &mut parquet::file::writer::SerializedColumnWriter,
+    value: Option<&serde_json::Value>,
+) -> anyhow::Result<()> {
+    generic_writer(
+        field_type,
+        col_writer.typed::<parquet::data_type::DoubleType>(),
+        value,
+        |value| {
+            let n = value.as_f64().with_context(|| {
+                format!(
+                    "{} column expects DOUBLE value bot got {}",
+                    field_type.name(),
+                    value
+                )
+            })?;
+            Ok(n)
+        },
+    )
+}
+
+fn byte_array_writer(
+    field_type: &parquet::schema::types::Type,
+    col_writer: &mut parquet::file::writer::SerializedColumnWriter,
+    value: Option<&serde_json::Value>,
+) -> anyhow::Result<()> {
+    generic_writer(
+        field_type,
+        col_writer.typed::<parquet::data_type::ByteArrayType>(),
+        value,
+        |value| {
+            let s = value.as_str().with_context(|| {
+                format!(
+                    "{} column expects BYTE_ARRAY value bot got {}",
+                    field_type.name(),
+                    value
+                )
+            })?;
+            Ok(s.into())
+        },
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use bytes::BufMut as _;
+    use parquet::file::reader::FileReader as _;
+
+    #[test]
+    fn it_works() {
+        let schema = parquet::schema::parser::parse_message_type(
+            r#"
+            message test {
+                required int64 t (timestamp(millis, true));
+                optional int32 n;
+                optional binary s (string);
+                optional int64 t2 (timestamp(millis, true));
+                optional double d;
+            }
+        "#,
+        )
+        .unwrap();
+        let rows = vec![
+            serde_json::json!({
+                "t": "2022-09-03T10:14:42.831Z",
+                "n": 1,
+                "s": "2",
+                "t2": "2022-09-05T11:15:43.942Z",
+                "d": 3.4,
+            }),
+            serde_json::json!({
+                "t": "2022-09-04T06:13:22.033Z",
+            }),
+            serde_json::json!({
+                "t": "2022-09-04T14:06:55.142Z",
+                "n": null,
+            }),
+        ];
+        let schema = std::sync::Arc::new(schema);
+        let mut writer = parquet::file::writer::SerializedFileWriter::new(
+            bytes::BytesMut::new().writer(),
+            schema.clone(),
+            std::sync::Arc::new(parquet::file::properties::WriterProperties::builder().build()),
+        )
+        .unwrap();
+        super::json_to_parquet(&schema, rows, &mut writer).unwrap();
+        let buf = writer.into_inner().unwrap().into_inner().freeze();
+
+        let reader = parquet::file::reader::SerializedFileReader::new(buf).unwrap();
+        assert_eq!(reader.metadata().num_row_groups(), 1);
+        let row_group = reader.metadata().row_group(0);
+        assert_eq!(row_group.num_columns(), 5);
+        let columns = row_group.columns();
+        assert_eq!(columns[0].column_type(), parquet::basic::Type::INT64);
+        assert_eq!(columns[0].num_values(), 3);
+        assert_eq!(columns[1].column_type(), parquet::basic::Type::INT32);
+        assert_eq!(columns[1].num_values(), 3);
+        assert_eq!(columns[2].column_type(), parquet::basic::Type::BYTE_ARRAY);
+        assert_eq!(columns[2].num_values(), 3);
+        assert_eq!(columns[3].column_type(), parquet::basic::Type::INT64);
+        assert_eq!(columns[3].num_values(), 3);
+        assert_eq!(columns[4].column_type(), parquet::basic::Type::DOUBLE);
+        assert_eq!(columns[4].num_values(), 3);
+
+        let rows: Vec<parquet::record::Row> = reader.get_row_iter(None).unwrap().collect();
+        assert_eq!(
+            rows[0].to_json_value(),
+            serde_json::json!({
+                "t": "2022-09-03 10:14:42 +00:00",
+                "n": 1,
+                "s": "2",
+                "t2": "2022-09-05 11:15:43 +00:00",
+                "d": 3.4,
+            })
+        );
+        assert_eq!(
+            rows[1].to_json_value(),
+            serde_json::json!({
+                "t": "2022-09-04 06:13:22 +00:00",
+                "n": null,
+                "s": null,
+                "t2": null,
+                "d": null,
+            })
+        );
+        assert_eq!(
+            rows[2].to_json_value(),
+            serde_json::json!({
+                "t": "2022-09-04 14:06:55 +00:00",
+                "n": null,
+                "s": null,
+                "t2": null,
+                "d": null,
+            })
+        );
+    }
+
+    #[test]
+    fn it_fails_when_type_mismatch() {
+        let schema = parquet::schema::parser::parse_message_type(
+            r#"
+            message test {
+                optional int32 n;
+            }
+        "#,
+        )
+        .unwrap();
+        let rows = vec![serde_json::json!({
+            "n": "1",
+        })];
+        let schema = std::sync::Arc::new(schema);
+        let mut writer = parquet::file::writer::SerializedFileWriter::new(
+            bytes::BytesMut::new().writer(),
+            schema.clone(),
+            std::sync::Arc::new(parquet::file::properties::WriterProperties::builder().build()),
+        )
+        .unwrap();
+        assert!(super::json_to_parquet(&schema, rows, &mut writer).is_err());
+    }
+
+    #[test]
+    fn it_fails_when_required_field_is_missing() {
+        let schema = parquet::schema::parser::parse_message_type(
+            r#"
+            message test {
+                required int32 n;
+            }
+        "#,
+        )
+        .unwrap();
+        let rows = vec![serde_json::json!({
+            "m": 1,
+        })];
+        let schema = std::sync::Arc::new(schema);
+        let mut writer = parquet::file::writer::SerializedFileWriter::new(
+            bytes::BytesMut::new().writer(),
+            schema.clone(),
+            std::sync::Arc::new(parquet::file::properties::WriterProperties::builder().build()),
+        )
+        .unwrap();
+        assert!(super::json_to_parquet(&schema, rows, &mut writer).is_err());
+    }
+}
