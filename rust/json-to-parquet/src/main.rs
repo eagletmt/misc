@@ -13,6 +13,9 @@ struct Args {
     /// Path to output Parquet file
     #[clap(short, long)]
     output: std::path::PathBuf,
+    /// Write batch size
+    #[clap(long, default_value_t = 1024)]
+    write_batch_size: usize,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -51,11 +54,13 @@ fn main() -> anyhow::Result<()> {
     })?;
     let props = parquet::file::properties::WriterProperties::builder()
         .set_compression(parquet::basic::Compression::SNAPPY)
+        .set_write_batch_size(args.write_batch_size)
         .build();
     let props = std::sync::Arc::new(props);
-    let mut writer = parquet::file::writer::SerializedFileWriter::new(file, schema.clone(), props)
-        .context("failed to initialize SerializedFileWriter")?;
-    json_to_parquet(&schema, rows, &mut writer)?;
+    let mut writer =
+        parquet::file::writer::SerializedFileWriter::new(file, schema.clone(), props.clone())
+            .context("failed to initialize SerializedFileWriter")?;
+    json_to_parquet(&schema, &props, rows, &mut writer)?;
     writer
         .close()
         .context("failed to close SerializedFileWriter")?;
@@ -65,6 +70,7 @@ fn main() -> anyhow::Result<()> {
 
 fn json_to_parquet<W>(
     schema: &parquet::schema::types::Type,
+    props: &parquet::file::properties::WriterProperties,
     rows: Vec<serde_json::Value>,
     writer: &mut parquet::file::writer::SerializedFileWriter<W>,
 ) -> anyhow::Result<()>
@@ -80,17 +86,36 @@ where
             parquet::schema::types::Type::PrimitiveType { physical_type, .. } => {
                 match physical_type {
                     parquet::basic::Type::INT32 => {
-                        convert_column(field_type, &rows, &mut row_group_writer, int32_writer)?;
+                        convert_column(
+                            field_type,
+                            props,
+                            &rows,
+                            &mut row_group_writer,
+                            int32_writer,
+                        )?;
                     }
                     parquet::basic::Type::INT64 => {
-                        convert_column(field_type, &rows, &mut row_group_writer, int64_writer)?;
+                        convert_column(
+                            field_type,
+                            props,
+                            &rows,
+                            &mut row_group_writer,
+                            int64_writer,
+                        )?;
                     }
                     parquet::basic::Type::DOUBLE => {
-                        convert_column(field_type, &rows, &mut row_group_writer, double_writer)?;
+                        convert_column(
+                            field_type,
+                            props,
+                            &rows,
+                            &mut row_group_writer,
+                            double_writer,
+                        )?;
                     }
                     parquet::basic::Type::BYTE_ARRAY => {
                         convert_column(
                             field_type,
+                            props,
                             &rows,
                             &mut row_group_writer,
                             byte_array_writer,
@@ -112,6 +137,7 @@ where
 
 fn convert_column<W, F>(
     field_type: &parquet::schema::types::Type,
+    props: &parquet::file::properties::WriterProperties,
     rows: &[serde_json::Value],
     row_group_writer: &mut parquet::file::writer::SerializedRowGroupWriter<W>,
     writer: F,
@@ -121,16 +147,16 @@ where
     F: Fn(
         &parquet::schema::types::Type,
         &mut parquet::file::writer::SerializedColumnWriter,
-        Option<&serde_json::Value>,
+        Vec<Option<&serde_json::Value>>,
     ) -> anyhow::Result<()>,
 {
     let mut col_writer = row_group_writer
         .next_column()
         .context("failed to initialize next SerializedColumnWriter")?
         .unwrap();
-    for row in rows {
-        let value = row.get(field_type.name());
-        writer(field_type, &mut col_writer, value)?;
+    for chunk in rows.chunks(props.write_batch_size()) {
+        let values = chunk.iter().map(|row| row.get(field_type.name())).collect();
+        writer(field_type, &mut col_writer, values)?;
     }
     col_writer
         .close()
@@ -141,58 +167,56 @@ where
 fn generic_writer<'a, T, F>(
     field_type: &parquet::schema::types::Type,
     col_writer: &mut parquet::column::writer::ColumnWriterImpl<'a, T>,
-    value: Option<&serde_json::Value>,
+    json_values: Vec<Option<&serde_json::Value>>,
     coerce: F,
 ) -> anyhow::Result<()>
 where
     T: parquet::data_type::DataType,
-    F: FnOnce(&serde_json::Value) -> anyhow::Result<T::T>,
+    F: Fn(&serde_json::Value) -> anyhow::Result<T::T>,
 {
-    if field_type.is_optional() && (value.is_none() || value.unwrap().is_null()) {
-        col_writer
-            .write_batch(&[], Some(&[0]), None)
-            .with_context(|| {
-                format!(
-                    "failed to write {} column value of type {}: (null)",
-                    field_type.name(),
-                    T::get_physical_type(),
-                )
+    let mut values = Vec::with_capacity(json_values.len());
+    let mut def_levels = Vec::with_capacity(json_values.len());
+    for json_value in json_values {
+        if field_type.is_optional() && (json_value.is_none() || json_value.unwrap().is_null()) {
+            def_levels.push(0);
+        } else {
+            let json_value = json_value.with_context(|| {
+                format!("{} column is required but not present", field_type.name())
             })?;
-    } else {
-        let value = value
-            .with_context(|| format!("{} column is required but not present", field_type.name()))?;
-        let v = coerce(value)?;
-        col_writer
-            .write_batch(&[v], Some(&[1]), None)
-            .with_context(|| {
-                format!(
-                    "failed to write column {} value of type {}: {}",
-                    field_type.name(),
-                    T::get_physical_type(),
-                    value
-                )
-            })?;
+            let v = coerce(json_value)?;
+            values.push(v);
+            def_levels.push(1);
+        }
     }
+    col_writer
+        .write_batch(&values, Some(&def_levels), None)
+        .with_context(|| {
+            format!(
+                "failed to write {} column values of type {}",
+                field_type.name(),
+                T::get_physical_type(),
+            )
+        })?;
     Ok(())
 }
 
 fn int32_writer(
     field_type: &parquet::schema::types::Type,
     col_writer: &mut parquet::file::writer::SerializedColumnWriter,
-    value: Option<&serde_json::Value>,
+    json_values: Vec<Option<&serde_json::Value>>,
 ) -> anyhow::Result<()> {
     generic_writer(
         field_type,
         col_writer.typed::<parquet::data_type::Int32Type>(),
-        value,
-        |value| {
-            value
+        json_values,
+        |json_value| {
+            json_value
                 .as_i64()
                 .with_context(|| {
                     format!(
                         "{} column expects INT32 value but got {}",
                         field_type.name(),
-                        value
+                        json_value
                     )
                 })?
                 .try_into()
@@ -200,7 +224,7 @@ fn int32_writer(
                     format!(
                         "failed to convert {} column value to INT32 type: {}",
                         field_type.name(),
-                        value
+                        json_value
                     )
                 })
         },
@@ -210,20 +234,20 @@ fn int32_writer(
 fn int64_writer(
     field_type: &parquet::schema::types::Type,
     col_writer: &mut parquet::file::writer::SerializedColumnWriter,
-    value: Option<&serde_json::Value>,
+    json_values: Vec<Option<&serde_json::Value>>,
 ) -> anyhow::Result<()> {
     generic_writer(
         field_type,
         col_writer.typed::<parquet::data_type::Int64Type>(),
-        value,
-        |value| {
+        json_values,
+        |json_value| {
             let n = match field_type.get_basic_info().converted_type() {
                 parquet::basic::ConvertedType::TIMESTAMP_MILLIS => {
-                    let s = value.as_str().with_context(|| {
+                    let s = json_value.as_str().with_context(|| {
                         format!(
                             "{} column expects TIMESTAMP_MILLIS but got value: {}",
                             field_type.name(),
-                            value
+                            json_value
                         )
                     })?;
                     let t = chrono::DateTime::parse_from_rfc3339(s).with_context(|| {
@@ -235,11 +259,11 @@ fn int64_writer(
                     })?;
                     t.timestamp() * 1000 + t.timestamp_subsec_millis() as i64
                 }
-                _ => value.as_i64().with_context(|| {
+                _ => json_value.as_i64().with_context(|| {
                     format!(
                         "{} column expects INT64 but got {}",
                         field_type.name(),
-                        value
+                        json_value
                     )
                 })?,
             };
@@ -251,18 +275,18 @@ fn int64_writer(
 fn double_writer(
     field_type: &parquet::schema::types::Type,
     col_writer: &mut parquet::file::writer::SerializedColumnWriter,
-    value: Option<&serde_json::Value>,
+    json_values: Vec<Option<&serde_json::Value>>,
 ) -> anyhow::Result<()> {
     generic_writer(
         field_type,
         col_writer.typed::<parquet::data_type::DoubleType>(),
-        value,
-        |value| {
-            let n = value.as_f64().with_context(|| {
+        json_values,
+        |json_value| {
+            let n = json_value.as_f64().with_context(|| {
                 format!(
                     "{} column expects DOUBLE value bot got {}",
                     field_type.name(),
-                    value
+                    json_value
                 )
             })?;
             Ok(n)
@@ -273,18 +297,18 @@ fn double_writer(
 fn byte_array_writer(
     field_type: &parquet::schema::types::Type,
     col_writer: &mut parquet::file::writer::SerializedColumnWriter,
-    value: Option<&serde_json::Value>,
+    json_values: Vec<Option<&serde_json::Value>>,
 ) -> anyhow::Result<()> {
     generic_writer(
         field_type,
         col_writer.typed::<parquet::data_type::ByteArrayType>(),
-        value,
-        |value| {
-            let s = value.as_str().with_context(|| {
+        json_values,
+        |json_value| {
+            let s = json_value.as_str().with_context(|| {
                 format!(
                     "{} column expects BYTE_ARRAY value bot got {}",
                     field_type.name(),
-                    value
+                    json_value
                 )
             })?;
             Ok(s.into())
