@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1"
-chrono = "0.4.22"
+chrono = "0.4"
 clap = { version = "3", features = ["derive"] }
 parquet = "21"
 serde_json = "1"

@@ -169,8 +169,7 @@ where
     }
     col_writer
         .close()
-        .context("failed to close SerializedColumnWriter")?;
-    Ok(())
+        .context("failed to close SerializedColumnWriter")
 }
 
 fn generic_writer<'a, T, F>(
@@ -239,8 +238,8 @@ fn int32_writer(
         field_type,
         col_writer.typed::<parquet::data_type::Int32Type>(),
         json_values,
-        |json_value| {
-            json_value
+        |json_value| match field_type.get_basic_info().converted_type() {
+            parquet::basic::ConvertedType::NONE => json_value
                 .as_i64()
                 .with_context(|| {
                     format!(
@@ -256,7 +255,29 @@ fn int32_writer(
                         field_type.name(),
                         json_value
                     )
-                })
+                }),
+            parquet::basic::ConvertedType::DATE => {
+                let s = json_value.as_str().with_context(|| {
+                    format!(
+                        "{} column expects DATE value but got {}",
+                        field_type.name(),
+                        json_value
+                    )
+                })?;
+                chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d")
+                    .with_context(|| {
+                        format!(
+                            "failed to parse {} column DATE value: {}",
+                            field_type.name(),
+                            s
+                        )
+                    })
+                    .map(|d| {
+                        let unix_epoch_date = chrono::NaiveDate::from_ymd(1970, 1, 1);
+                        (d - unix_epoch_date).num_days() as i32
+                    })
+            }
+            ct => anyhow::bail!("unsupported converted type for INT32: {}", ct),
         },
     )
 }
@@ -271,6 +292,13 @@ fn int64_writer(
         col_writer.typed::<parquet::data_type::Int64Type>(),
         json_values,
         |json_value| match field_type.get_basic_info().converted_type() {
+            parquet::basic::ConvertedType::NONE => json_value.as_i64().with_context(|| {
+                format!(
+                    "{} column expects INT64 but got {}",
+                    field_type.name(),
+                    json_value
+                )
+            }),
             parquet::basic::ConvertedType::TIMESTAMP_MILLIS => {
                 let s = json_value.as_str().with_context(|| {
                     format!(
@@ -289,13 +317,25 @@ fn int64_writer(
                     })
                     .map(|t| t.timestamp() * 1000 + t.timestamp_subsec_millis() as i64)
             }
-            _ => json_value.as_i64().with_context(|| {
-                format!(
-                    "{} column expects INT64 but got {}",
-                    field_type.name(),
-                    json_value
-                )
-            }),
+            parquet::basic::ConvertedType::TIMESTAMP_MICROS => {
+                let s = json_value.as_str().with_context(|| {
+                    format!(
+                        "{} column expects TIMESTAMP_MICROS but got value: {}",
+                        field_type.name(),
+                        json_value
+                    )
+                })?;
+                chrono::DateTime::parse_from_rfc3339(s)
+                    .with_context(|| {
+                        format!(
+                            "failed to parse {} column TIMESTAMP_MICROS value: {}",
+                            field_type.name(),
+                            s
+                        )
+                    })
+                    .map(|t| t.timestamp() * 1000000 + t.timestamp_subsec_micros() as i64)
+            }
+            ct => anyhow::bail!("unsupported converted type for INT64: {}", ct),
         },
     )
 }
@@ -386,6 +426,8 @@ mod tests {
                 optional double d;
                 optional float f;
                 optional boolean b;
+                optional int32 dt (date);
+                optional int64 tm (timestamp(micros, true));
             }
         "#,
         )
@@ -399,6 +441,8 @@ mod tests {
                 "d": 3.4,
                 "f": 2.0,
                 "b": true,
+                "dt": "2022-09-05",
+                "tm": "2022-09-05T11:15:43.042878Z",
                 "rest": "ignored",
             }),
             serde_json::json!({
@@ -424,7 +468,7 @@ mod tests {
         let reader = parquet::file::reader::SerializedFileReader::new(buf).unwrap();
         assert_eq!(reader.metadata().num_row_groups(), 1);
         let row_group = reader.metadata().row_group(0);
-        assert_eq!(row_group.num_columns(), 7);
+        assert_eq!(row_group.num_columns(), 9);
         let columns = row_group.columns();
         assert_eq!(columns[0].column_type(), parquet::basic::Type::INT64);
         assert_eq!(columns[0].num_values(), 3);
@@ -440,6 +484,10 @@ mod tests {
         assert_eq!(columns[5].num_values(), 3);
         assert_eq!(columns[6].column_type(), parquet::basic::Type::BOOLEAN);
         assert_eq!(columns[6].num_values(), 3);
+        assert_eq!(columns[7].column_type(), parquet::basic::Type::INT32);
+        assert_eq!(columns[7].num_values(), 3);
+        assert_eq!(columns[8].column_type(), parquet::basic::Type::INT64);
+        assert_eq!(columns[8].num_values(), 3);
 
         let rows: Vec<parquet::record::Row> = reader.get_row_iter(None).unwrap().collect();
         assert_eq!(
@@ -452,6 +500,8 @@ mod tests {
                 "d": 3.4,
                 "f": 2.0,
                 "b": true,
+                "dt": "2022-09-05 +00:00",
+                "tm": "2022-09-05 11:15:43 +00:00",
             })
         );
         assert_eq!(
@@ -464,6 +514,8 @@ mod tests {
                 "d": null,
                 "f": null,
                 "b": null,
+                "dt": null,
+                "tm": null,
             })
         );
         assert_eq!(
@@ -476,6 +528,8 @@ mod tests {
                 "d": null,
                 "f": null,
                 "b": null,
+                "dt": null,
+                "tm": null,
             })
         );
     }
