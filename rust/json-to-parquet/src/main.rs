@@ -352,13 +352,15 @@ mod tests {
             }),
         ];
         let schema = std::sync::Arc::new(schema);
+        let props =
+            std::sync::Arc::new(parquet::file::properties::WriterProperties::builder().build());
         let mut writer = parquet::file::writer::SerializedFileWriter::new(
             bytes::BytesMut::new().writer(),
             schema.clone(),
-            std::sync::Arc::new(parquet::file::properties::WriterProperties::builder().build()),
+            props.clone(),
         )
         .unwrap();
-        super::json_to_parquet(&schema, rows, &mut writer).unwrap();
+        super::json_to_parquet(&schema, &props, rows, &mut writer).unwrap();
         let buf = writer.into_inner().unwrap().into_inner().freeze();
 
         let reader = parquet::file::reader::SerializedFileReader::new(buf).unwrap();
@@ -424,13 +426,15 @@ mod tests {
             "n": "1",
         })];
         let schema = std::sync::Arc::new(schema);
+        let props =
+            std::sync::Arc::new(parquet::file::properties::WriterProperties::builder().build());
         let mut writer = parquet::file::writer::SerializedFileWriter::new(
             bytes::BytesMut::new().writer(),
             schema.clone(),
-            std::sync::Arc::new(parquet::file::properties::WriterProperties::builder().build()),
+            props.clone(),
         )
         .unwrap();
-        assert!(super::json_to_parquet(&schema, rows, &mut writer).is_err());
+        assert!(super::json_to_parquet(&schema, &props, rows, &mut writer).is_err());
     }
 
     #[test]
@@ -447,12 +451,14 @@ mod tests {
             "m": 1,
         })];
         let schema = std::sync::Arc::new(schema);
+        let props =
+            std::sync::Arc::new(parquet::file::properties::WriterProperties::builder().build());
         let mut writer = parquet::file::writer::SerializedFileWriter::new(
             bytes::BytesMut::new().writer(),
             schema.clone(),
-            std::sync::Arc::new(parquet::file::properties::WriterProperties::builder().build()),
+            props.clone(),
         )
         .unwrap();
-        assert!(super::json_to_parquet(&schema, rows, &mut writer).is_err());
+        assert!(super::json_to_parquet(&schema, &props, rows, &mut writer).is_err());
     }
 }
