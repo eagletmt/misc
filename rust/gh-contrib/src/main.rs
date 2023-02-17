@@ -22,13 +22,13 @@ async fn main() -> Result<(), anyhow::Error> {
     let token = std::env::var("GITHUB_ACCESS_TOKEN")?;
     let mut from = opt.from.map(|from| {
         chrono::DateTime::from_utc(
-            from.and_time(chrono::NaiveTime::from_hms(0, 0, 0)),
+            from.and_time(chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap()),
             chrono::Utc,
         )
     });
     let mut to = opt.to.map(|to| {
         chrono::DateTime::from_utc(
-            to.and_time(chrono::NaiveTime::from_hms(0, 0, 0)),
+            to.and_time(chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap()),
             chrono::Utc,
         )
     });

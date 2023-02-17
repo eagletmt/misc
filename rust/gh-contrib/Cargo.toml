@@ -9,8 +9,8 @@ edition = "2021"
 ansi_term = "0.12"
 anyhow = "1"
 chrono = { version = "0.4", features = ["serde"] }
-clap = { version = "3", features = ["derive"] }
-graphql_client = { version = "0.11", features = ["reqwest-rustls"] }
+clap = { version = "4", features = ["derive"] }
+graphql_client = { version = "0.12", features = ["reqwest-rustls"] }
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
 serde = "1"
 tokio = { version = "1", features = ["macros", "rt", "tracing"] }
