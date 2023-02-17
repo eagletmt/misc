@@ -41,7 +41,6 @@ async fn resolve_name(
             .lookup(
                 name.as_str(),
                 trust_dns_resolver::proto::rr::RecordType::CNAME,
-                Default::default(),
             )
             .await
         {
@@ -157,7 +156,6 @@ async fn resolve_caa(
         .lookup(
             name.as_str(),
             trust_dns_resolver::proto::rr::RecordType::CAA,
-            Default::default(),
         )
         .await
     {
