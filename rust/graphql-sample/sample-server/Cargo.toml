@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1"
-axum = "0.5"
+axum = "0.6"
 juniper = "0.15"
 juniper_hyper = "0.8"
 listenfd = "1"
