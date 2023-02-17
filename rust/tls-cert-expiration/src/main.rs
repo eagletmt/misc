@@ -2,7 +2,7 @@ use chrono::TimeZone as _;
 use clap::Parser as _;
 use std::convert::TryFrom as _;
 use std::io::Write as _;
-use x509_parser::traits::FromDer as _;
+use x509_parser::prelude::FromDer as _;
 
 #[derive(Debug, clap::Parser)]
 struct Opt {
@@ -39,13 +39,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!(
         "    {}",
         chrono::Local
-            .timestamp(cert.validity().not_before.timestamp(), 0)
+            .timestamp_opt(cert.validity().not_before.timestamp(), 0)
+            .unwrap()
             .to_rfc3339()
     );
     println!(
         "    {}",
         chrono::Local
-            .timestamp(cert.validity().not_after.timestamp(), 0)
+            .timestamp_opt(cert.validity().not_after.timestamp(), 0)
+            .unwrap()
             .to_rfc3339()
     );
     let duration = cert
