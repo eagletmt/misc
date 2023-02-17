@@ -44,7 +44,7 @@ impl MRuby {
             crate::mruby_c::mrb_load_nstring_cxt(
                 self.mrb,
                 code.as_ptr() as *const i8,
-                code.len() as u64,
+                code.len(),
                 ctx,
             );
             crate::mruby_c::mrbc_context_free(self.mrb, ctx);
@@ -61,11 +61,7 @@ impl MRuby {
             crate::mruby_c::mrb_obj_iv_get(
                 self.mrb,
                 (*self.mrb).top_self,
-                crate::mruby_c::mrb_intern_static(
-                    self.mrb,
-                    name.as_ptr() as *const i8,
-                    name.len() as u64,
-                ),
+                crate::mruby_c::mrb_intern_static(self.mrb, name.as_ptr() as *const i8, name.len()),
             )
         };
         Value {
@@ -150,7 +146,7 @@ extern "C" fn mrb_dir_glob(
                 let path_value = crate::mruby_c::mrb_str_new(
                     mrb,
                     path_str.as_ptr() as *const i8,
-                    path_str.len() as u64,
+                    path_str.len(),
                 );
                 crate::mruby_c::mrb_ary_push(mrb, entries, path_value);
             };
@@ -164,13 +160,13 @@ extern "C" fn mrb_dir_glob(
                 let path_value = crate::mruby_c::mrb_str_new(
                     mrb,
                     path_str.as_ptr() as *const i8,
-                    path_str.len() as u64,
+                    path_str.len(),
                 );
                 let method_name = "call";
                 let method_id = crate::mruby_c::mrb_intern_static(
                     mrb,
                     method_name.as_ptr() as *const i8,
-                    method_name.len() as u64,
+                    method_name.len(),
                 );
                 let argv = [path_value];
                 crate::mruby_c::mrb_funcall_argv(
@@ -202,12 +198,7 @@ extern "C" fn mrb_require(
         let path_cstr = unwrap_or_raise(mrb, std::ffi::CString::new(path.as_bytes()));
         let ctx = crate::mruby_c::mrbc_context_new(mrb);
         crate::mruby_c::mrbc_filename(mrb, ctx, path_cstr.as_ptr());
-        crate::mruby_c::mrb_load_nstring_cxt(
-            mrb,
-            code.as_ptr() as *const i8,
-            code.len() as u64,
-            ctx,
-        );
+        crate::mruby_c::mrb_load_nstring_cxt(mrb, code.as_ptr() as *const i8, code.len(), ctx);
         crate::mruby_c::mrbc_context_free(mrb, ctx);
     }
     mrb_nil_value()
@@ -250,7 +241,7 @@ impl<'a> Value<'a> {
             let meth = crate::mruby_c::mrb_intern_static(
                 self.mruby.mrb,
                 name.as_ptr() as *const i8,
-                name.len() as u64,
+                name.len(),
             );
             crate::mruby_c::mrb_funcall_argv(self.mruby.mrb, self.inner, meth, 0, std::ptr::null())
         };
