@@ -73,7 +73,7 @@ fn main() -> anyhow::Result<()> {
         }
     }
 
-    let mut cmd = std::process::Command::new(&prog);
+    let mut cmd = std::process::Command::new(prog);
     cmd.envs(envs).args(args);
     let status = exec(cmd).context("failed to exec given command")?;
     if !status.success() {
