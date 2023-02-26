@@ -1,13 +1,19 @@
 use anyhow::Context as _;
+use std::collections::HashSet;
 use std::io::Write as _;
 
 fn main() -> anyhow::Result<()> {
     let mut args = std::env::args();
     let me = args.next().unwrap();
-    let name = args.next().unwrap_or_else(|| {
-        eprintln!("Usage: {} NAME PROG ARGS...", me);
-        std::process::exit(1);
-    });
+    let names = args
+        .next()
+        .unwrap_or_else(|| {
+            eprintln!("Usage: {} NAME PROG ARGS...", me);
+            std::process::exit(1);
+        })
+        .split(',')
+        .map(|v| v.to_string())
+        .collect::<HashSet<String>>();
     let prog = args.next().unwrap_or_else(|| {
         eprintln!("Usage: {} NAME PROG ARGS...", me);
         std::process::exit(1);
@@ -20,7 +26,6 @@ fn main() -> anyhow::Result<()> {
     let output = std::process::Command::new("bw")
         .arg("list")
         .arg("items")
-        .arg(&name)
         .arg("--folderid")
         .arg(folderid)
         .output()
@@ -44,7 +49,7 @@ fn main() -> anyhow::Result<()> {
     })?;
     let mut envs = Vec::new();
     for item in items.into_iter() {
-        if item.name == name {
+        if names.contains(&item.name) {
             match item.type_ {
                 ItemType::SecureNote => {
                     for field in item.fields {
