@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 ansi_term = "0.12"
 anyhow = "1"
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
 clap = { version = "4", features = ["derive"] }
 graphql_client = { version = "0.12", features = ["reqwest-rustls"] }
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }

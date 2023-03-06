@@ -5,7 +5,7 @@ authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-chrono = "0.4"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
 clap = { version = "4", features = ["derive"] }
 rustls = "0.20"
 rustls-native-certs = "0.6"
