@@ -2,8 +2,8 @@
 pub struct Variable {
     pub name: String,
     pub path: std::path::PathBuf,
-    pub begin_offset: usize,
-    pub end_offset: usize,
+    pub begin_offset: u32,
+    pub end_offset: u32,
 }
 
 impl Variable {
@@ -37,7 +37,7 @@ pub fn find_unused_variables(expr: &jrsonnet_parser::LocExpr) -> Vec<Variable> {
         .into_iter()
         .map(|(name, location)| Variable {
             name,
-            path: location.0.to_path_buf(),
+            path: location.0.source_path().path().unwrap().to_path_buf(),
             begin_offset: location.1,
             end_offset: location.2,
         })
@@ -85,7 +85,7 @@ fn simplify_expr(
             let mut simplified = simplify_expr(child_expr, &next_env, counter);
             for (name, index, expr) in binds.into_iter().rev() {
                 simplified = Simplified::Bind {
-                    location: loc_expr.1.to_owned().unwrap(),
+                    location: loc_expr.1.to_owned(),
                     name,
                     index,
                     expr: Box::new(expr),
@@ -144,7 +144,8 @@ fn simplify_expr(
                         var_name,
                         for_expr,
                     )) => {
-                        let name = var_name.to_string();
+                        let jrsonnet_parser::Destruct::Full(name) = var_name;
+                        let name = name.to_string();
                         let index = *counter;
                         *counter += 1;
                         next_env.insert(name.clone(), index);
@@ -160,7 +161,7 @@ fn simplify_expr(
                     Spec::For { name, index, s } => {
                         simplified = if v.is_empty() {
                             Simplified::Bind {
-                                location: loc_expr.1.to_owned().unwrap(),
+                                location: loc_expr.1.to_owned(),
                                 name,
                                 index,
                                 expr: Box::new(s),
@@ -169,7 +170,7 @@ fn simplify_expr(
                         } else {
                             v.push(simplified);
                             Simplified::Bind {
-                                location: loc_expr.1.to_owned().unwrap(),
+                                location: loc_expr.1.to_owned(),
                                 name,
                                 index,
                                 expr: Box::new(s),
@@ -201,6 +202,7 @@ fn simplify_expr(
         jrsonnet_parser::Expr::Parened(e) => simplify_expr(e, env, counter),
         jrsonnet_parser::Expr::Import(_) => Simplified::Lit,
         jrsonnet_parser::Expr::ImportStr(_) => Simplified::Lit,
+        jrsonnet_parser::Expr::ImportBin(_) => Simplified::Lit,
         jrsonnet_parser::Expr::AssertExpr(
             jrsonnet_parser::AssertStmt(assert_expr, assert_message),
             child,
@@ -223,10 +225,6 @@ fn simplify_expr(
             }
         }
         jrsonnet_parser::Expr::ErrorStmt(e) => simplify_expr(e, env, counter),
-        jrsonnet_parser::Expr::Intrinsic(_) => {
-            // Should not happen in parsing normal Jsonnet
-            Simplified::Lit
-        }
         jrsonnet_parser::Expr::IfElse {
             cond: jrsonnet_parser::IfSpecData(cond),
             cond_then,
@@ -331,7 +329,7 @@ fn simplify_obj_body(
             let mut simplified = Simplified::Expr { children };
             for (name, index, s) in binds.into_iter().rev() {
                 simplified = Simplified::Bind {
-                    location: loc_expr.1.to_owned().unwrap(),
+                    location: loc_expr.1.to_owned(),
                     name,
                     index,
                     expr: Box::new(s),
@@ -365,7 +363,8 @@ fn simplify_obj_body(
                         var_name,
                         for_expr,
                     )) => {
-                        let name = var_name.to_string();
+                        let jrsonnet_parser::Destruct::Full(name) = var_name;
+                        let name = name.to_string();
                         let index = *counter;
                         *counter += 1;
                         next_env.insert(name.clone(), index);
@@ -379,15 +378,17 @@ fn simplify_obj_body(
             let mut binds = pre_binds;
             binds.extend(post_binds);
 
+            let mut field_children = Vec::new();
+            if let jrsonnet_parser::FieldName::Dyn(name_expr) = &obj_comp.field.name {
+                field_children.push(simplify_expr(name_expr, &next_env, counter));
+            }
+            field_children.push(simplify_expr(&obj_comp.field.value, &next_env, counter));
             let mut simplified = Simplified::Expr {
-                children: vec![
-                    simplify_expr(&obj_comp.key, &next_env, counter),
-                    simplify_expr(&obj_comp.value, &next_env, counter),
-                ],
+                children: field_children,
             };
             for (name, index, s) in binds.into_iter().rev() {
                 simplified = Simplified::Bind {
-                    location: loc_expr.1.to_owned().unwrap(),
+                    location: loc_expr.1.to_owned(),
                     name,
                     index,
                     expr: Box::new(s),
@@ -401,7 +402,7 @@ fn simplify_obj_body(
                     Spec::For { name, index, s } => {
                         simplified = if v.is_empty() {
                             Simplified::Bind {
-                                location: loc_expr.1.to_owned().unwrap(),
+                                location: loc_expr.1.to_owned(),
                                 name,
                                 index,
                                 expr: Box::new(s),
@@ -410,7 +411,7 @@ fn simplify_obj_body(
                         } else {
                             v.push(simplified);
                             Simplified::Bind {
-                                location: loc_expr.1.to_owned().unwrap(),
+                                location: loc_expr.1.to_owned(),
                                 name,
                                 index,
                                 expr: Box::new(s),
@@ -440,7 +441,8 @@ fn simplify_func(
     let mut next_env = env.clone();
     let mut binds = Vec::with_capacity(params.len());
     for param in params.iter() {
-        let name = param.0.to_string();
+        let jrsonnet_parser::Destruct::Full(name) = &param.0;
+        let name = name.to_string();
         let index = *counter;
         *counter += 1;
         let child = if let Some(default_expr) = &param.1 {
@@ -454,7 +456,7 @@ fn simplify_func(
     let mut simplified = simplify_expr(body, &next_env, counter);
     for (name, index, expr) in binds.into_iter().rev() {
         simplified = Simplified::Bind {
-            location: loc_expr.1.to_owned().unwrap(),
+            location: loc_expr.1.to_owned(),
             name,
             index,
             expr: Box::new(expr),
@@ -471,9 +473,10 @@ fn simplify_binds(
 ) -> Vec<(String, isize, Simplified)> {
     let mut binds = Vec::with_capacity(bind_specs.len());
     for bind_spec in bind_specs {
-        if let Some(params) = &bind_spec.params {
+        if let jrsonnet_parser::BindSpec::Function { params, .. } = bind_spec {
             for param in params.iter() {
-                let name = param.0.to_string();
+                let jrsonnet_parser::Destruct::Full(name) = &param.0;
+                let name = name.to_string();
                 let index = *counter;
                 *counter += 1;
                 let child = if let Some(default_expr) = &param.1 {
@@ -485,10 +488,21 @@ fn simplify_binds(
                 binds.push((name, index, child));
             }
         }
-        let name = bind_spec.name.to_string();
+        let name = match bind_spec {
+            jrsonnet_parser::BindSpec::Field {
+                into: jrsonnet_parser::Destruct::Full(name),
+                ..
+            } => name,
+            jrsonnet_parser::BindSpec::Function { name, .. } => name,
+        }
+        .to_string();
         let index = *counter;
         *counter += 1;
-        let child = simplify_expr(&bind_spec.value, next_env, counter);
+        let value = match bind_spec {
+            jrsonnet_parser::BindSpec::Field { value, .. } => value,
+            jrsonnet_parser::BindSpec::Function { value, .. } => value,
+        };
+        let child = simplify_expr(value, next_env, counter);
         next_env.insert(name.clone(), index);
         binds.push((name, index, child));
     }
@@ -533,8 +547,12 @@ mod tests {
         let expr = jrsonnet_parser::parse(
             &code,
             &jrsonnet_parser::ParserSettings {
-                loc_data: true,
-                file_name: std::path::PathBuf::from("test.jsonnet").into(),
+                source: jrsonnet_parser::Source::new(
+                    jrsonnet_parser::SourcePath::new(jrsonnet_parser::SourceFile::new(
+                        "test.jsonnet".into(),
+                    )),
+                    "".into(),
+                ),
             },
         )
         .expect("failed to parse Jsonnet");

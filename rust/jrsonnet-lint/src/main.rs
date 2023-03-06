@@ -4,8 +4,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let expr = jrsonnet_parser::parse(
             &code,
             &jrsonnet_parser::ParserSettings {
-                loc_data: true,
-                file_name: std::path::PathBuf::from(&arg).into(),
+                source: jrsonnet_parser::Source::new(
+                    jrsonnet_parser::SourcePath::new(jrsonnet_parser::SourceFile::new(arg.into())),
+                    "".into(),
+                ),
             },
         )?;
         let unused_variables = jrsonnet_lint::find_unused_variables(&expr);
