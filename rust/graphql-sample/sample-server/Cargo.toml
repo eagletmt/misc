@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1"
 axum = "0.6"
-juniper = "0.15"
+juniper = { version = "0.15", default-features = false }
 juniper_hyper = "0.8"
 listenfd = "1"
 sqlx = { version = "0.6", features = ["runtime-tokio-rustls", "postgres"] }
