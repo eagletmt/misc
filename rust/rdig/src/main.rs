@@ -12,22 +12,25 @@ async fn resolve_name(
     resolver: &mut trust_dns_resolver::TokioAsyncResolver,
     name: String,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let type_style = ansi_term::Style::new().fg(ansi_term::Color::Yellow);
-    let name_style = ansi_term::Style::new().fg(ansi_term::Color::Green);
-    let addr_style = ansi_term::Style::new().fg(ansi_term::Color::Blue);
+    const TYPE_STYLE: anstyle::Style =
+        anstyle::Style::new().fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Yellow)));
+    const NAME_STYLE: anstyle::Style =
+        anstyle::Style::new().fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Green)));
+    const ADDR_STYLE: anstyle::Style =
+        anstyle::Style::new().fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Blue)));
 
     let mx_handle = tokio::spawn(resolve_mx(
         resolver.clone(),
         name.clone(),
-        type_style,
-        name_style,
+        TYPE_STYLE,
+        NAME_STYLE,
     ));
-    let txt_handle = tokio::spawn(resolve_txt(resolver.clone(), name.clone(), type_style));
+    let txt_handle = tokio::spawn(resolve_txt(resolver.clone(), name.clone(), TYPE_STYLE));
     let caa_handle = tokio::spawn(resolve_caa(
         resolver.clone(),
         name.clone(),
-        type_style,
-        name_style,
+        TYPE_STYLE,
+        NAME_STYLE,
     ));
 
     mx_handle.await?;
@@ -47,11 +50,14 @@ async fn resolve_name(
             for cname in resp {
                 resolved = true;
                 let next_name = cname.as_cname().unwrap().to_string();
-                println!(
-                    "{} {} {}",
+                anstream::println!(
+                    "{} {}CNAME{} {}{}{}",
                     name,
-                    type_style.paint("CNAME"),
-                    name_style.paint(&next_name)
+                    TYPE_STYLE.render(),
+                    TYPE_STYLE.render_reset(),
+                    NAME_STYLE.render(),
+                    next_name,
+                    NAME_STYLE.render_reset(),
                 );
                 name = next_name;
             }
@@ -65,11 +71,14 @@ async fn resolve_name(
     let mut addrs = Vec::new();
     if let Ok(resp) = resolver.ipv4_lookup(name.as_str()).await {
         for a in resp {
-            println!(
-                "{} {} {}",
+            anstream::println!(
+                "{} {}A{} {}{}{}",
                 name,
-                type_style.paint("A"),
-                addr_style.paint(a.to_string())
+                TYPE_STYLE.render(),
+                TYPE_STYLE.render_reset(),
+                ADDR_STYLE.render(),
+                a.to_string(),
+                ADDR_STYLE.render_reset(),
             );
             addrs.push(std::net::IpAddr::from(a));
         }
@@ -77,11 +86,14 @@ async fn resolve_name(
 
     if let Ok(resp) = resolver.ipv6_lookup(name.as_str()).await {
         for aaaa in resp {
-            println!(
-                "{} {} {}",
+            anstream::println!(
+                "{} {}AAAA{} {}{}{}",
                 name,
-                type_style.paint("AAAA"),
-                addr_style.paint(aaaa.to_string())
+                TYPE_STYLE.render(),
+                TYPE_STYLE.render_reset(),
+                ADDR_STYLE.render(),
+                aaaa.to_string(),
+                ADDR_STYLE.render_reset(),
             );
             addrs.push(std::net::IpAddr::from(aaaa));
         }
@@ -92,8 +104,8 @@ async fn resolve_name(
         addr_handles.push(tokio::spawn(resolve_ptr(
             resolver.clone(),
             addr,
-            type_style,
-            name_style,
+            TYPE_STYLE,
+            NAME_STYLE,
         )));
     }
     for handle in addr_handles {
@@ -105,8 +117,8 @@ async fn resolve_name(
 async fn resolve_mx(
     resolver: trust_dns_resolver::TokioAsyncResolver,
     name: String,
-    type_style: ansi_term::Style,
-    name_style: ansi_term::Style,
+    type_style: anstyle::Style,
+    name_style: anstyle::Style,
 ) {
     if let Ok(resp) = resolver.mx_lookup(name.as_str()).await {
         let mut records: Vec<_> = resp.into_iter().collect();
@@ -116,11 +128,14 @@ async fn resolve_mx(
                 .then_with(|| x.exchange().cmp(y.exchange()))
         });
         for mx in records {
-            println!(
-                "{} {} {} {}",
+            anstream::println!(
+                "{} {}MX{} {}{}{} {}",
                 name,
-                type_style.paint("MX"),
-                name_style.paint(mx.exchange().to_utf8()),
+                type_style.render(),
+                type_style.render_reset(),
+                name_style.render(),
+                mx.exchange().to_utf8(),
+                name_style.render_reset(),
                 mx.preference()
             );
         }
@@ -130,15 +145,16 @@ async fn resolve_mx(
 async fn resolve_txt(
     resolver: trust_dns_resolver::TokioAsyncResolver,
     name: String,
-    type_style: ansi_term::Style,
+    type_style: anstyle::Style,
 ) {
     if let Ok(resp) = resolver.txt_lookup(name.as_str()).await {
         for txt in resp {
             for data in txt.txt_data() {
-                println!(
-                    "{} {} {}",
+                anstream::println!(
+                    "{} {}TXT{} {}",
                     name,
-                    type_style.paint("TXT"),
+                    type_style.render(),
+                    type_style.render_reset(),
                     String::from_utf8_lossy(data),
                 );
             }
@@ -149,8 +165,8 @@ async fn resolve_txt(
 async fn resolve_caa(
     resolver: trust_dns_resolver::TokioAsyncResolver,
     name: String,
-    type_style: ansi_term::Style,
-    name_style: ansi_term::Style,
+    type_style: anstyle::Style,
+    name_style: anstyle::Style,
 ) {
     if let Ok(resp) = resolver
         .lookup(
@@ -164,37 +180,47 @@ async fn resolve_caa(
             use trust_dns_resolver::proto::rr::rdata::caa::{Property, Value};
             match (caa.tag(), caa.value()) {
                 (Property::Issue, Value::Issuer(Some(domain), _)) => {
-                    println!(
-                        "{} {} issue {} (critical={})",
+                    anstream::println!(
+                        "{} {}CAA{} issue {}{}{} (critical={})",
                         name,
-                        type_style.paint("CAA"),
-                        name_style.paint(domain.to_utf8()),
+                        type_style.render(),
+                        type_style.render_reset(),
+                        name_style.render(),
+                        domain.to_utf8(),
+                        name_style.render_reset(),
                         caa.issuer_critical()
                     );
                 }
                 (Property::IssueWild, Value::Issuer(Some(domain), _)) => {
-                    println!(
-                        "{} {} issuewild {} (critical={})",
+                    anstream::println!(
+                        "{} {}CAA{} issuewild {}{}{} (critical={})",
                         name,
-                        type_style.paint("CAA"),
-                        name_style.paint(domain.to_utf8()),
+                        type_style.render(),
+                        type_style.render_reset(),
+                        name_style.render(),
+                        domain.to_utf8(),
+                        name_style.render_reset(),
                         caa.issuer_critical()
                     );
                 }
                 (Property::Iodef, Value::Url(url)) => {
-                    println!(
-                        "{} {} iodef {} (critical={})",
+                    anstream::println!(
+                        "{} {}CAA{} iodef {}{}{} (critical={})",
                         name,
-                        type_style.paint("CAA"),
-                        name_style.paint(url.as_str()),
+                        type_style.render(),
+                        type_style.render_reset(),
+                        name_style.render(),
+                        url.as_str(),
+                        name_style.render_reset(),
                         caa.issuer_critical()
                     );
                 }
                 (tag, value) => {
-                    println!(
-                        "{} {} {:?} {:?} (critical={})",
+                    anstream::println!(
+                        "{} {}CAA{} {:?} {:?} (critical={})",
                         name,
-                        type_style.paint("CAA"),
+                        type_style.render(),
+                        type_style.render_reset(),
                         tag,
                         value,
                         caa.issuer_critical()
@@ -208,26 +234,33 @@ async fn resolve_caa(
 async fn resolve_ptr(
     resolver: trust_dns_resolver::TokioAsyncResolver,
     addr: std::net::IpAddr,
-    type_style: ansi_term::Style,
-    name_style: ansi_term::Style,
+    type_style: anstyle::Style,
+    name_style: anstyle::Style,
 ) {
     if let Ok(resp) = resolver.reverse_lookup(addr).await {
         for ptr in resp {
             {
-                println!(
-                    "{} {} {}",
+                anstream::println!(
+                    "{} {}PTR{} {}{}{}",
                     addr,
-                    type_style.paint("PTR"),
-                    name_style.paint(ptr.to_string())
+                    type_style.render(),
+                    type_style.render_reset(),
+                    name_style.render(),
+                    ptr.to_string(),
+                    name_style.render_reset(),
                 );
             }
         }
     } else {
-        println!(
-            "{} {} {}",
+        const NONE_STYLE: anstyle::Style =
+            anstyle::Style::new().fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Red)));
+        anstream::println!(
+            "{} {}PTR{} {}NONE{}",
             addr,
-            type_style.paint("PTR"),
-            ansi_term::Color::Red.paint("NONE")
+            type_style.render(),
+            type_style.render_reset(),
+            NONE_STYLE.render(),
+            NONE_STYLE.render_reset(),
         );
     }
 }

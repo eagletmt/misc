@@ -94,24 +94,30 @@ async fn main() -> Result<(), anyhow::Error> {
                 contributions.started_at, contributions.ended_at
             );
 
+            const CLOSED_STYLE: anstyle::Style =
+                anstyle::Style::new().fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Red)));
+            const MERGED_STYLE: anstyle::Style = anstyle::Style::new()
+                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Magenta)));
+            const OPEN_STYLE: anstyle::Style = anstyle::Style::new()
+                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Green)));
+            const OTHER_STYLE: anstyle::Style = anstyle::Style::new();
+
             println!("===== pull requests =====");
             for edge in pull_request_contributions {
                 let pull_request = edge.unwrap().node.unwrap().pull_request;
-                let state = match pull_request.state {
-                    query_contrib::PullRequestState::CLOSED => {
-                        ansi_term::Color::Red.paint("Closed").to_string()
-                    }
-                    query_contrib::PullRequestState::MERGED => {
-                        ansi_term::Color::Purple.paint("Merged").to_string()
-                    }
-                    query_contrib::PullRequestState::OPEN => {
-                        ansi_term::Color::Green.paint("Open").to_string()
-                    }
-                    query_contrib::PullRequestState::Other(s) => s,
+                let (state, style) = match pull_request.state {
+                    query_contrib::PullRequestState::CLOSED => ("Closed", CLOSED_STYLE),
+                    query_contrib::PullRequestState::MERGED => ("Merged", MERGED_STYLE),
+                    query_contrib::PullRequestState::OPEN => ("Open", OPEN_STYLE),
+                    query_contrib::PullRequestState::Other(ref s) => (s.as_str(), OTHER_STYLE),
                 };
-                println!(
-                    "[{}] {} [{}]",
-                    state, pull_request.title, pull_request.created_at
+                anstream::println!(
+                    "[{}{}{}] {} [{}]",
+                    style.render(),
+                    state,
+                    style.render_reset(),
+                    pull_request.title,
+                    pull_request.created_at
                 );
                 println!("  {}", pull_request.url);
             }
@@ -119,16 +125,19 @@ async fn main() -> Result<(), anyhow::Error> {
             println!("===== issues =====");
             for edge in issue_contributions {
                 let issue = edge.unwrap().node.unwrap().issue;
-                let state = match issue.state {
-                    query_contrib::IssueState::CLOSED => {
-                        ansi_term::Color::Red.paint("Closed").to_string()
-                    }
-                    query_contrib::IssueState::OPEN => {
-                        ansi_term::Color::Green.paint("Open").to_string()
-                    }
-                    query_contrib::IssueState::Other(s) => s,
+                let (state, style) = match issue.state {
+                    query_contrib::IssueState::CLOSED => ("Closed", CLOSED_STYLE),
+                    query_contrib::IssueState::OPEN => ("Open", OPEN_STYLE),
+                    query_contrib::IssueState::Other(ref s) => (s.as_str(), OTHER_STYLE),
                 };
-                println!("[{}] {} [{}]", state, issue.title, issue.created_at);
+                anstream::println!(
+                    "[{}{}{}] {} [{}]",
+                    style.render(),
+                    state,
+                    style.render_reset(),
+                    issue.title,
+                    issue.created_at
+                );
                 println!("  {}", issue.url);
             }
             break;
