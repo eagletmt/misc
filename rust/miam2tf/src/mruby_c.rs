@@ -7,5 +7,6 @@
 #![allow(clippy::approx_constant)]
 #![allow(clippy::upper_case_acronyms)]
 #![allow(clippy::transmute_int_to_bool)]
+#![allow(clippy::useless_transmute)]
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));

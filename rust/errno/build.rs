@@ -26,7 +26,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     bindgen::builder()
         .header_contents("wrapper.h", "#include <errno.h>")
-        .parse_callbacks(Box::new(MacroCollector::default()))
+        .parse_callbacks(Box::<MacroCollector>::default())
         .generate()
         .expect("unable to collect macros");
 

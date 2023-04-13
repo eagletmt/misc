@@ -41,7 +41,7 @@ impl Vec3 {
         self.length_squared().sqrt()
     }
     pub fn length_squared(&self) -> f64 {
-        self.dot(&self)
+        self.dot(self)
     }
 
     pub fn dot(&self, rhs: &Self) -> f64 {
@@ -279,19 +279,13 @@ impl Hittable for Sphere {
     }
 }
 
+#[derive(Default)]
 pub struct HittableList {
     objects: Vec<std::sync::Arc<dyn Hittable + Send + Sync>>,
 }
 impl HittableList {
     pub fn add(&mut self, object: std::sync::Arc<dyn Hittable + Send + Sync>) {
         self.objects.push(object);
-    }
-}
-impl Default for HittableList {
-    fn default() -> Self {
-        Self {
-            objects: Default::default(),
-        }
     }
 }
 impl Hittable for HittableList {
@@ -319,6 +313,7 @@ pub struct Camera<R> {
     rng: R,
 }
 impl<R> Camera<R> {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         lookfrom: Point3,
         lookat: Point3,
