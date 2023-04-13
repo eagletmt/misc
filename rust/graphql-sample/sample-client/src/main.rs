@@ -126,5 +126,5 @@ fn main() {
     let e = document
         .get_element_by_id("main")
         .expect_throw("failed to find #main element");
-    yew::start_app_in_element::<Model>(e);
+    yew::Renderer::<Model>::with_root(e).render();
 }

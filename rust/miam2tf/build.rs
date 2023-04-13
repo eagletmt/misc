@@ -6,8 +6,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         panic!("failed to build mruby");
     }
+    println!("cargo:rustc-link-search=native=miam2tf/vendor/mruby/build/host/lib");
     println!("cargo:rustc-link-lib=static=mruby");
-    println!("cargo:rustc-link-search=native=vendor/mruby/build/host/lib");
 
     println!("cargo:rerun-if-changed=include/wrapper.h");
     println!("cargo:rerun-if-changed=src/wrapper.c");

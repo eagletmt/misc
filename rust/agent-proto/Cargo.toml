@@ -7,7 +7,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tonic-build = "0.8"
+tonic-build = "0.9"
 
 [dependencies]
 anyhow = "1"
@@ -18,7 +18,7 @@ prost = "0.11"
 tempfile = "3"
 tokio = { version = "1", features = ["rt-multi-thread", "net", "signal"] }
 tokio-stream = { version = "0.1", features = ["net"] }
-tonic = "0.8"
+tonic = "0.9"
 tower = "0.4"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

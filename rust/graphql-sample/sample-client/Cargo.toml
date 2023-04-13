@@ -12,4 +12,4 @@ serde = "1"
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 web-sys = "0.3"
-yew = "0.19"
+yew = { version = "0.20", features = ["csr"] }

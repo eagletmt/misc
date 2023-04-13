@@ -8,6 +8,6 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
-aws-config = "0.54"
-aws-sdk-sts = "0.24"
+aws-config = "0.55"
+aws-sdk-sts = "0.26"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }

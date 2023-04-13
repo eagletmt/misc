@@ -44,7 +44,7 @@ async fn upload(
     let put_image_future = s3_client
         .put_object()
         .bucket(BUCKET_NAME)
-        .storage_class(aws_sdk_s3::model::StorageClass::ReducedRedundancy)
+        .storage_class(aws_sdk_s3::types::StorageClass::ReducedRedundancy)
         .key(image_key)
         .content_length(image.len() as i64)
         .body(image.into())
@@ -53,7 +53,7 @@ async fn upload(
     let put_html_future = s3_client
         .put_object()
         .bucket(BUCKET_NAME)
-        .storage_class(aws_sdk_s3::model::StorageClass::ReducedRedundancy)
+        .storage_class(aws_sdk_s3::types::StorageClass::ReducedRedundancy)
         .key(digest)
         .content_length(html.len() as i64)
         .body(html.into())

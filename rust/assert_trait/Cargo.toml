@@ -10,7 +10,7 @@ edition = "2021"
 proc-macro = true
 
 [dependencies]
-syn = "1"
+syn = "2"
 quote = "1"
 
 [dev-dependencies]
