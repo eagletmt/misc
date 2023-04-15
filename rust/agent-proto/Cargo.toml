@@ -11,7 +11,6 @@ tonic-build = "0.9"
 
 [dependencies]
 anyhow = "1"
-async-stream = "0.3"
 libc = "0.2"
 nix = "0.26"
 prost = "0.11"
