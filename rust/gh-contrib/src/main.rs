@@ -151,7 +151,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
 #[derive(graphql_client::GraphQLQuery)]
 #[graphql(
-    schema_path = "graphql/schema.graphql",
+    schema_path = "../schema.docs.graphql",
     query_path = "graphql/query_contrib.graphql",
     response_derives = "Debug"
 )]

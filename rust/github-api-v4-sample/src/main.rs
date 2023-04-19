@@ -32,7 +32,7 @@ type URI = String;
 #[derive(graphql_client::GraphQLQuery)]
 #[graphql(
     query_path = "latest_tarball_query.graphql",
-    schema_path = "schema.docs.graphql",
+    schema_path = "../schema.docs.graphql",
     response_derives = "Debug"
 )]
 struct LatestTarballQuery;
