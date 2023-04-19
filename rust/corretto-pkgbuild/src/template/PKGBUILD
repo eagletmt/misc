@@ -1,3 +1,4 @@
+{{ #if maintainer }}# Maintainer: {{ maintainer }}{{ /if }}
 pkgname=amazon-corretto-{{ jdk_version }}
 pkgver={{ pkgver }}
 pkgrel={{ pkgrel }}

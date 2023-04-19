@@ -6,6 +6,9 @@ struct Args {
     /// pkgrel
     #[clap(short, long, default_value_t = 1)]
     pkgrel: u8,
+    /// Maintainer header name
+    #[clap(short, long)]
+    maintainer: Option<String>,
 }
 
 #[derive(Debug, PartialEq, serde::Serialize)]
@@ -36,6 +39,7 @@ async fn main() -> anyhow::Result<()> {
 
     let mut handlebars = handlebars::Handlebars::new();
     handlebars.set_strict_mode(true);
+    handlebars.register_escape_fn(handlebars::no_escape);
     handlebars.register_template_string("PKGBUILD", include_str!("template/PKGBUILD"))?;
 
     let octocrab = octocrab::instance();
