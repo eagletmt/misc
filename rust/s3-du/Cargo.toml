@@ -7,6 +7,6 @@ edition = "2021"
 
 [dependencies]
 aws-config = "0.55"
-aws-sdk-s3 = "0.26"
+aws-sdk-s3 = "0.28"
 clap = { version = "4", features = ["derive"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
