@@ -8,4 +8,4 @@ edition = "2021"
 anstream.workspace = true
 anstyle.workspace = true
 tokio.workspace = true
-trust-dns-resolver = "0.22"
+trust-dns-resolver = "0.23"

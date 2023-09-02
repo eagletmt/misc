@@ -80,7 +80,7 @@ async fn resolve_name(
                 a.to_string(),
                 ADDR_STYLE.render_reset(),
             );
-            addrs.push(std::net::IpAddr::from(a));
+            addrs.push(std::net::IpAddr::from(*a));
         }
     }
 
@@ -95,7 +95,7 @@ async fn resolve_name(
                 aaaa.to_string(),
                 ADDR_STYLE.render_reset(),
             );
-            addrs.push(std::net::IpAddr::from(aaaa));
+            addrs.push(std::net::IpAddr::from(*aaaa));
         }
     }
 
