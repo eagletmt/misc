@@ -1,3 +1,4 @@
+use chrono::TimeZone as _;
 use clap::Parser as _;
 use graphql_client::GraphQLQuery as _;
 
@@ -21,16 +22,12 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let token = std::env::var("GITHUB_ACCESS_TOKEN")?;
     let mut from = opt.from.map(|from| {
-        chrono::DateTime::from_utc(
-            from.and_time(chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap()),
-            chrono::Utc,
-        )
+        chrono::Utc
+            .from_utc_datetime(&from.and_time(chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap()))
     });
     let mut to = opt.to.map(|to| {
-        chrono::DateTime::from_utc(
-            to.and_time(chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap()),
-            chrono::Utc,
-        )
+        chrono::Utc
+            .from_utc_datetime(&to.and_time(chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap()))
     });
     let variables = query_contrib::Variables {
         login: opt.user.clone(),
