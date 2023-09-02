@@ -10,7 +10,8 @@ anyhow = "1"
 clap = { version = "4", features = ["derive"] }
 handlebars = "4"
 octocrab = { version = "0.27", default-features = false, features = ["rustls"] }
-pulldown-cmark = { version = "0.9", default-features = false }
+# https://github.com/raphlinus/pulldown-cmark/pull/672 is needed to parse Markdown of https://github.com/corretto/corretto-11/releases/tag/11.0.20.9.1 .
+pulldown-cmark = { git = "https://github.com/raphlinus/pulldown-cmark", rev = "b30808bc85ca26d2eec4f6a4b6a9c2536af1d06b", default-features = false }
 serde = { version = "1", features = ["derive"] }
 tendril = "0.4"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }

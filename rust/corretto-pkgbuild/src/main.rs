@@ -184,11 +184,11 @@ fn extract_tarballs(body: &str) -> anyhow::Result<Option<Tarballs>> {
                 .into_iter()
                 .find_map(|n| {
                     if let Node::Element(Element {
-                        tag: pulldown_cmark::Tag::Link(_, link, _),
+                        tag: pulldown_cmark::Tag::Link { dest_url, .. },
                         ..
                     }) = n
                     {
-                        Some(link)
+                        Some(dest_url)
                     } else {
                         None
                     }
@@ -291,5 +291,21 @@ mod test {
         let body = include_str!("../test/corretto-11.0.16.8.3.md");
         let tarballs = super::extract_tarballs(body).unwrap();
         assert_eq!(tarballs, None);
+    }
+
+    #[test]
+    fn table_without_leading_empty_line() {
+        let body = include_str!("../test/corretto-11.0.20.9.1.md");
+        let tarballs = super::extract_tarballs(body).unwrap().unwrap();
+        assert_eq!(tarballs.x86_64_download, "https://corretto.aws/downloads/resources/11.0.20.9.1/amazon-corretto-11.0.20.9.1-linux-x64.tar.gz");
+        assert_eq!(
+            tarballs.x86_64_checksum_sha256,
+            "b6150255d304eab8fdcc0422beab277e5395bc481b4f87f096da78a979e47d47"
+        );
+        assert_eq!(tarballs.aarch64_download, "https://corretto.aws/downloads/resources/11.0.20.9.1/amazon-corretto-11.0.20.9.1-linux-aarch64.tar.gz");
+        assert_eq!(
+            tarballs.aarch64_checksum_sha256,
+            "17c33bd5fb51fd8b4b5cdfce9d656f31698a6c6ccf018f4f2bf99d714948c736"
+        );
     }
 }
