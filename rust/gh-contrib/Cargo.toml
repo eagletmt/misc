@@ -6,14 +6,14 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anstream = "0.3"
-anstyle = "1"
-anyhow = "1"
-chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
-clap = { version = "4", features = ["derive"] }
-graphql_client = { version = "0.13", features = ["reqwest-rustls"] }
-reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
-serde = "1"
-tokio = { version = "1", features = ["macros", "rt", "tracing"] }
-tracing = "0.1"
-tracing-subscriber = "0.3"
+anstream.workspace = true
+anstyle.workspace = true
+anyhow.workspace = true
+chrono.workspace = true
+clap.workspace = true
+graphql_client.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

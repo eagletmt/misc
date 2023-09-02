@@ -5,7 +5,7 @@ authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-anstream = "0.3"
-anstyle = "1"
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+anstream.workspace = true
+anstyle.workspace = true
+tokio.workspace = true
 trust-dns-resolver = "0.22"

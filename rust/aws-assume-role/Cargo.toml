@@ -7,7 +7,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = { version = "4", features = ["derive"] }
-aws-config = "0.55"
-aws-sdk-sts = "0.28"
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+clap.workspace = true
+aws-config.workspace = true
+aws-sdk-sts.workspace = true
+tokio.workspace = true

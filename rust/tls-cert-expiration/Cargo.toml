@@ -5,8 +5,8 @@ authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-chrono = { version = "0.4", default-features = false, features = ["clock"] }
-clap = { version = "4", features = ["derive"] }
+chrono.workspace = true
+clap.workspace = true
 rustls = "0.21"
 rustls-native-certs = "0.6"
 x509-parser = "0.15"
