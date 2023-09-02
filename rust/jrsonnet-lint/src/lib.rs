@@ -113,12 +113,14 @@ fn simplify_expr(
             }
             Simplified::Expr { children }
         }
-        jrsonnet_parser::Expr::Index(obj, idx) => Simplified::Expr {
-            children: vec![
-                simplify_expr(obj, env, counter),
-                simplify_expr(idx, env, counter),
-            ],
-        },
+        jrsonnet_parser::Expr::Index { indexable, parts } => {
+            let mut children = Vec::with_capacity(1 + parts.len());
+            children.push(simplify_expr(indexable, env, counter));
+            for part in parts {
+                children.push(simplify_expr(&part.value, env, counter));
+            }
+            Simplified::Expr { children }
+        }
         jrsonnet_parser::Expr::ArrComp(child_expr, comp_specs) => {
             let mut children = Vec::new();
             enum Spec {

@@ -2161,9 +2161,9 @@ checksum = "af150ab688ff2122fcef229be89cb50dd66af9e01a4ff320cc137eecc9bacc38"
 
 [[package]]
 name = "jrsonnet-gcmodule"
-version = "0.3.5"
+version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "35243aa6a013032e9469f3798c54e2ca7af44973b1eafdc924cb6ca351a71f72"
+checksum = "c11fb98940a7f8b419619e98ccbf2e094671a5fdd0e277f05acd373071186d57"
 dependencies = [
  "jrsonnet-gcmodule-derive",
  "parking_lot",
@@ -2171,9 +2171,9 @@ dependencies = [
 
 [[package]]
 name = "jrsonnet-gcmodule-derive"
-version = "0.3.5"
+version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96206bf4ae74d5257bbbd23113bfe67b09e8973de3843b728c3ce289dee86eda"
+checksum = "6bee774b7ba86fc86ee84482cd6732aa860ae3559f9827c65efd75c51e66ac76"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2182,9 +2182,9 @@ dependencies = [
 
 [[package]]
 name = "jrsonnet-interner"
-version = "0.5.0-pre91"
+version = "0.5.0-pre95"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eaaf3e0ba36ff02145fbfa42344bced69e10cb1dc36d6d5b4992a6167d0de163"
+checksum = "9d2332eb6c0bbd27e81ed8ad488a70e448437dd17b54e90cf3b8974b82c3c379"
 dependencies = [
  "hashbrown 0.13.2",
  "jrsonnet-gcmodule",
@@ -2201,9 +2201,9 @@ dependencies = [
 
 [[package]]
 name = "jrsonnet-parser"
-version = "0.5.0-pre91"
+version = "0.5.0-pre95"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39bc30c610dc2a1758cccc68e9273937e176271fabc0d772571c707d57600e3c"
+checksum = "8d403645f250bdc8f31a2a142ebd4608f9595bdad1a89db871ccdfe81c427957"
 dependencies = [
  "jrsonnet-gcmodule",
  "jrsonnet-interner",
