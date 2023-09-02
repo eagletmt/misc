@@ -22,6 +22,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .blocklist_item("FP_ZERO")
         .blocklist_item("FP_SUBNORMAL")
         .blocklist_item("FP_NORMAL")
+        .generate_comments(false)
         .generate()
         .expect("unable to generate bindings");
     let out_path = std::path::PathBuf::from(std::env::var("OUT_DIR")?);
