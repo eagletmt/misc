@@ -40,7 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
             let mut futures_unordered = futures::stream::iter(futures).buffer_unordered(16);
-            while futures_unordered.next().await.is_some() {}
+            while futures_unordered.next().await.transpose()?.is_some() {}
         }
 
         if continuation_token.is_none() {
