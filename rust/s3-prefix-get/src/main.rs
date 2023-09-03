@@ -1,4 +1,3 @@
-use bytes::Buf as _;
 use clap::Parser as _;
 use futures::StreamExt as _;
 use tokio::io::AsyncWriteExt as _;
@@ -64,15 +63,10 @@ async fn download(
         .key(&key)
         .send()
         .await?;
-    let mut body = resp.body;
+    let mut reader = tokio_util::io::StreamReader::new(resp.body);
     let file = tokio::fs::File::create(&path).await?;
     let mut writer = tokio::io::BufWriter::new(file);
-    while let Some(chunk) = body.next().await {
-        let mut chunk = chunk?;
-        while chunk.has_remaining() {
-            writer.write_buf(&mut chunk).await?;
-        }
-    }
+    tokio::io::copy(&mut reader, &mut writer).await?;
     writer.shutdown().await?;
     println!("s3://{}/{} -> {}", bucket, key, path.display());
     Ok(())
