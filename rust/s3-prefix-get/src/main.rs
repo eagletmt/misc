@@ -15,7 +15,6 @@ struct Opt {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let opt = Opt::parse();
-    let fs_prefix = format!("{}/", opt.prefix.rsplitn(2, '/').last().unwrap());
 
     let shared_config = aws_config::load_from_env().await;
     let s3_client = aws_sdk_s3::Client::new(&shared_config);
@@ -35,7 +34,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut futures = Vec::new();
             for content in contents {
                 if let Some(key) = content.key {
-                    let path = opt.output_dir.join(key.strip_prefix(&fs_prefix).unwrap());
+                    let path = opt.output_dir.join(&key);
                     futures.push(download(&s3_client, &opt.bucket, key, path));
                 }
             }
@@ -64,6 +63,9 @@ async fn download(
         .send()
         .await?;
     let mut reader = tokio_util::io::StreamReader::new(resp.body);
+    if let Some(parent) = path.parent() {
+        tokio::fs::create_dir_all(parent).await?;
+    }
     let file = tokio::fs::File::create(&path).await?;
     let mut writer = tokio::io::BufWriter::new(file);
     tokio::io::copy(&mut reader, &mut writer).await?;
