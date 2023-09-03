@@ -1,6 +1,9 @@
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut resolver = trust_dns_resolver::AsyncResolver::tokio_from_system_conf()?;
+    let mut resolver = trust_dns_resolver::AsyncResolver::tokio(
+        trust_dns_resolver::config::ResolverConfig::cloudflare_https(),
+        trust_dns_resolver::config::ResolverOpts::default(),
+    );
 
     for arg in std::env::args().skip(1) {
         resolve_name(&mut resolver, arg).await?;

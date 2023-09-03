@@ -4459,22 +4459,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0dc775440033cb114085f6f2437682b194fa7546466024b1037e82a48a052a69"
 dependencies = [
  "async-trait",
+ "bytes",
  "cfg-if",
  "data-encoding",
  "enum-as-inner 0.6.0",
  "futures-channel",
  "futures-io",
  "futures-util",
+ "h2",
+ "http",
  "idna 0.4.0",
  "ipnet",
  "once_cell",
  "rand",
+ "rustls",
+ "rustls-pemfile",
+ "rustls-webpki",
  "smallvec",
  "thiserror",
  "tinyvec",
  "tokio",
+ "tokio-rustls",
  "tracing",
  "url",
+ "webpki-roots 0.25.2",
 ]
 
 [[package]]
@@ -4505,17 +4513,18 @@ checksum = "2dff7aed33ef3e8bf2c9966fccdfed93f93d46f432282ea875cd66faabc6ef2f"
 dependencies = [
  "cfg-if",
  "futures-util",
- "ipconfig",
  "lru-cache",
  "once_cell",
  "parking_lot",
  "rand",
- "resolv-conf",
+ "rustls",
  "smallvec",
  "thiserror",
  "tokio",
+ "tokio-rustls",
  "tracing",
  "trust-dns-proto 0.23.0",
+ "webpki-roots 0.25.2",
 ]
 
 [[package]]

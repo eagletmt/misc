@@ -8,4 +8,4 @@ edition = "2021"
 anstream.workspace = true
 anstyle.workspace = true
 tokio.workspace = true
-trust-dns-resolver = "0.23"
+trust-dns-resolver = { version = "0.23", default-features = false, features = ["tokio-runtime", "dns-over-https-rustls"] }
