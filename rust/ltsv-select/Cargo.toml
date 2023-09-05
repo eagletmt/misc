@@ -1,8 +1,0 @@
-[package]
-name = "ltsv-select"
-version = "0.1.0"
-authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
-edition = "2018"
-
-[dependencies]
-getopts = "0.2"
