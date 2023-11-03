@@ -35,7 +35,12 @@ pub struct PolicyStatement {
     pub actions: Vec<String>,
     pub resources: Vec<String>,
     pub conditions: Vec<PolicyCondition>,
+
     pub principals: Vec<PolicyPrincipal>,
+
+    pub not_actions: Vec<String>,
+    pub not_resources: Vec<String>,
+    pub not_principals: Vec<PolicyPrincipal>,
 }
 
 #[derive(Debug)]

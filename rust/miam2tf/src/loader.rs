@@ -29,6 +29,14 @@ fn to_rust_policy_document(policy: &crate::mruby::Value) -> crate::PolicyDocumen
         for resource in statement.read_attribute("resources").iter() {
             resources.push(resource.to_string());
         }
+        let mut not_actions = Vec::new();
+        for action in statement.read_attribute("not_actions").iter() {
+            not_actions.push(action.to_string());
+        }
+        let mut not_resources = Vec::new();
+        for resource in statement.read_attribute("not_resources").iter() {
+            not_resources.push(resource.to_string());
+        }
         let mut conditions = Vec::new();
         for condition in statement.read_attribute("conditions").iter() {
             let test = condition.read_attribute("test").to_string();
@@ -52,6 +60,15 @@ fn to_rust_policy_document(policy: &crate::mruby::Value) -> crate::PolicyDocumen
             }
             principals.push(crate::PolicyPrincipal { typ, identifiers });
         }
+        let mut not_principals = Vec::new();
+        for principal in statement.read_attribute("not_principals").iter() {
+            let typ = principal.read_attribute("type").to_string();
+            let mut identifiers = Vec::new();
+            for identifier in principal.read_attribute("identifiers").iter() {
+                identifiers.push(identifier.to_string());
+            }
+            not_principals.push(crate::PolicyPrincipal { typ, identifiers });
+        }
         statements.push(crate::PolicyStatement {
             sid,
             effect,
@@ -59,6 +76,10 @@ fn to_rust_policy_document(policy: &crate::mruby::Value) -> crate::PolicyDocumen
             resources,
             conditions,
             principals,
+
+            not_actions,
+            not_resources,
+            not_principals,
         });
     }
     crate::PolicyDocument {

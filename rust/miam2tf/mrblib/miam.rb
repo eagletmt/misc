@@ -135,7 +135,9 @@ PolicyDocument = Struct.new(:name, :version, :statements) do
       stmt.sid = raw_stmt['Sid']
       stmt.effect = raw_stmt['Effect']
       stmt.actions = Array(raw_stmt['Action'])
+      stmt.not_actions = Array(raw_stmt['NotAction'])
       stmt.resources = Array(raw_stmt['Resource'])
+      stmt.not_resources = Array(raw_stmt['NotResource'])
       stmt.conditions = []
       if raw_stmt.key?('Condition')
         raw_stmt['Condition'].each do |test, raw_cond|
@@ -152,13 +154,17 @@ PolicyDocument = Struct.new(:name, :version, :statements) do
       if raw_stmt.key?('Principal')
         stmt.principals = json_principals_to_array(raw_stmt['Principal'])
       end
+      stmt.not_principals = []
+      if raw_stmt.key?('NotPrincipal')
+        stmt.not_principals = json_principals_to_array(raw_stmt['NotPrincipal'])
+      end
 
       stmt
     end
     policy
   end
 end
-PolicyStatement = Struct.new(:sid, :effect, :actions, :resources, :conditions, :principals)
+PolicyStatement = Struct.new(:sid, :effect, :actions, :resources, :conditions, :principals, :not_actions, :not_resources, :not_principals)
 PolicyCondition = Struct.new(:test, :variable, :values)
 PolicyPrincipal = Struct.new(:identifiers, :type)
 

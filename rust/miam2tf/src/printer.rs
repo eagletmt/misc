@@ -251,6 +251,36 @@ where
             )?;
             writeln!(writer, "      }}")?;
         }
+
+        if !statement.not_actions.is_empty() {
+            writeln!(writer, "    not_actions = {:?}", statement.not_actions)?;
+        }
+        if !statement.not_resources.is_empty() {
+            writeln!(
+                writer,
+                "    not_resources = {:?}",
+                statement
+                    .resources
+                    .iter()
+                    .map(|s| replace_iam_interpolation(s))
+                    .collect::<Vec<_>>(),
+            )?;
+        }
+        for principal in &statement.not_principals {
+            writeln!(writer, "      not_principals {{")?;
+            writeln!(writer, r#"      type  = "{}""#, principal.typ)?;
+            writeln!(
+                writer,
+                "      identifiers = {:?}",
+                principal
+                    .identifiers
+                    .iter()
+                    .map(|s| replace_iam_interpolation(s))
+                    .collect::<Vec<_>>()
+            )?;
+            writeln!(writer, "      }}")?;
+        }
+
         writeln!(writer, "  }}")?;
     }
     writeln!(writer, "}}")
