@@ -13,6 +13,13 @@ fn to_rust_policy_document(policy: &crate::mruby::Value) -> crate::PolicyDocumen
     let version = policy.read_attribute("version").to_string_opt();
     let mut statements = Vec::new();
     for statement in policy.read_attribute("statements").iter() {
+        let sid_value = statement.read_attribute("sid");
+        let sid = if sid_value.is_nil() {
+            None
+        } else {
+            Some(sid_value.to_string())
+        };
+
         let effect = statement.read_attribute("effect").to_string();
         let mut actions = Vec::new();
         for action in statement.read_attribute("actions").iter() {
@@ -37,6 +44,7 @@ fn to_rust_policy_document(policy: &crate::mruby::Value) -> crate::PolicyDocumen
             });
         }
         statements.push(crate::PolicyStatement {
+            sid,
             effect,
             actions,
             resources,

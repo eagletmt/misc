@@ -117,6 +117,7 @@ PolicyDocument = Struct.new(:name, :version, :statements) do
     end
     policy.statements = statements.map do |raw_stmt|
       stmt = PolicyStatement.new
+      stmt.sid = raw_stmt['Sid']
       stmt.effect = raw_stmt['Effect']
       stmt.actions = Array(raw_stmt['Action'])
       stmt.resources = Array(raw_stmt['Resource'])
@@ -137,7 +138,7 @@ PolicyDocument = Struct.new(:name, :version, :statements) do
     policy
   end
 end
-PolicyStatement = Struct.new(:effect, :actions, :resources, :conditions)
+PolicyStatement = Struct.new(:sid, :effect, :actions, :resources, :conditions)
 PolicyCondition = Struct.new(:test, :variable, :values)
 
 Group = Struct.new(:name, :path, :policies, :attached_managed_policies) do

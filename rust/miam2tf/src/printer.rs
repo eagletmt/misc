@@ -207,8 +207,12 @@ where
     }
     for statement in &policy_document.statements {
         writeln!(writer, r#"  statement {{"#)?;
+        if let Some(ref sid) = statement.sid {
+            writeln!(writer, r#"    sid = "{sid}""#)?;
+        }
         writeln!(writer, r#"    effect = "{}""#, statement.effect)?;
         writeln!(writer, "    actions = {:?}", statement.actions)?;
+
         writeln!(
             writer,
             "    resources = {:?}",
