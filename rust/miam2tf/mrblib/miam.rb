@@ -106,6 +106,21 @@ class UserContext
   end
 end
 
+def json_principals_to_array(raw)
+  list = []
+  case raw
+  when '*'
+  when Hash
+    raw.each do |type, identifiers|
+        cond = PolicyPrincipal.new
+        cond.type = type
+        cond.identifiers = Array(identifiers).map(&:to_s)
+        list << cond
+    end
+  end
+  list
+end
+
 PolicyDocument = Struct.new(:name, :version, :statements) do
   def self.from_raw(name, raw)
     policy = new
@@ -133,13 +148,19 @@ PolicyDocument = Struct.new(:name, :version, :statements) do
           end
         end
       end
+      stmt.principals = []
+      if raw_stmt.key?('Principal')
+        stmt.principals = json_principals_to_array(raw_stmt['Principal'])
+      end
+
       stmt
     end
     policy
   end
 end
-PolicyStatement = Struct.new(:sid, :effect, :actions, :resources, :conditions)
+PolicyStatement = Struct.new(:sid, :effect, :actions, :resources, :conditions, :principals)
 PolicyCondition = Struct.new(:test, :variable, :values)
+PolicyPrincipal = Struct.new(:identifiers, :type)
 
 Group = Struct.new(:name, :path, :policies, :attached_managed_policies) do
   def initialize

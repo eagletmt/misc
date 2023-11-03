@@ -237,6 +237,20 @@ where
             )?;
             writeln!(writer, "      }}")?;
         }
+        for principal in &statement.principals {
+            writeln!(writer, "      principals {{")?;
+            writeln!(writer, r#"      type  = "{}""#, principal.typ)?;
+            writeln!(
+                writer,
+                "      identifiers = {:?}",
+                principal
+                    .identifiers
+                    .iter()
+                    .map(|s| replace_iam_interpolation(s))
+                    .collect::<Vec<_>>()
+            )?;
+            writeln!(writer, "      }}")?;
+        }
         writeln!(writer, "  }}")?;
     }
     writeln!(writer, "}}")

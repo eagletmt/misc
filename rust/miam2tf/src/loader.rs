@@ -43,12 +43,22 @@ fn to_rust_policy_document(policy: &crate::mruby::Value) -> crate::PolicyDocumen
                 values,
             });
         }
+        let mut principals = Vec::new();
+        for principal in statement.read_attribute("principals").iter() {
+            let typ = principal.read_attribute("type").to_string();
+            let mut identifiers = Vec::new();
+            for identifier in principal.read_attribute("identifiers").iter() {
+                identifiers.push(identifier.to_string());
+            }
+            principals.push(crate::PolicyPrincipal { typ, identifiers });
+        }
         statements.push(crate::PolicyStatement {
             sid,
             effect,
             actions,
             resources,
             conditions,
+            principals,
         });
     }
     crate::PolicyDocument {
