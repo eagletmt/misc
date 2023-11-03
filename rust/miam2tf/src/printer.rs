@@ -207,6 +207,20 @@ where
             print_policy_document(writer, &format!("assume-role-{}", role.name), policy)?;
         }
 
+        for profile in &role.instance_profiles {
+            writeln!(
+                writer,
+                r#"resource "aws_iam_instance_profile" "{profile}" {{"#,
+            )?;
+            writeln!(writer, r#"  name = "{profile}""#)?;
+            writeln!(writer, "  role = aws_iam_role.{}.name", role.name)?;
+            writeln!(writer, "}}")?;
+            writeln!(writer, "import {{")?;
+            writeln!(writer, "  to = aws_iam_instance_profile.{profile}",)?;
+            writeln!(writer, r#"  id = "{profile}""#)?;
+            writeln!(writer, "}}")?;
+        }
+
         for policy in &role.policies {
             writeln!(
                 writer,
