@@ -82,7 +82,7 @@ where
                 group.name, policy.name
             )?;
             writeln!(writer, r#"  name = "{}""#, policy.name)?;
-            writeln!(writer, "  user = aws_iam_group.{}.name", group.name)?;
+            writeln!(writer, "  group = aws_iam_group.{}.name", group.name)?;
             writeln!(
                 writer,
                 "  policy = data.aws_iam_policy_document.{}-{}.json",
@@ -104,7 +104,7 @@ where
                 r#"resource "aws_iam_group_policy_attachment" "{}-{}" {{"#,
                 group.name, short_policy_name
             )?;
-            writeln!(writer, "  user = aws_iam_group.{}.name", group.name)?;
+            writeln!(writer, "  group = aws_iam_group.{}.name", group.name)?;
             writeln!(
                 writer,
                 "  policy_arn = aws_iam_policy.{}.arn",
@@ -133,7 +133,7 @@ where
         writeln!(writer, "}}")?;
 
         if let Some(ref policy) = role.assume_role_policy_document {
-            print_policy_document(writer, &role.name, policy)?;
+            print_policy_document(writer, &format!("assume-role-{}", role.name), policy)?;
         }
 
         for policy in &role.policies {
@@ -143,7 +143,7 @@ where
                 role.name, policy.name
             )?;
             writeln!(writer, r#"  name = "{}""#, policy.name)?;
-            writeln!(writer, "  user = aws_iam_role.{}.name", role.name)?;
+            writeln!(writer, "  role = aws_iam_role.{}.name", role.name)?;
             writeln!(
                 writer,
                 "  policy = data.aws_iam_policy_document.{}-{}.json",
@@ -165,7 +165,7 @@ where
                 r#"resource "aws_iam_role_policy_attachment" "{}-{}" {{"#,
                 role.name, short_policy_name
             )?;
-            writeln!(writer, "  user = aws_iam_role.{}.name", role.name)?;
+            writeln!(writer, "  role = aws_iam_role.{}.name", role.name)?;
             writeln!(
                 writer,
                 "  policy_arn = aws_iam_policy.{}.arn",
