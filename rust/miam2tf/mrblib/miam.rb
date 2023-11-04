@@ -106,6 +106,21 @@ class UserContext
   end
 end
 
+def json_principals_to_array(raw)
+  list = []
+  case raw
+  when '*'
+  when Hash
+    raw.each do |type, identifiers|
+        cond = PolicyPrincipal.new
+        cond.type = type
+        cond.identifiers = Array(identifiers).map(&:to_s)
+        list << cond
+    end
+  end
+  list
+end
+
 PolicyDocument = Struct.new(:name, :version, :statements) do
   def self.from_raw(name, raw)
     policy = new
@@ -117,9 +132,12 @@ PolicyDocument = Struct.new(:name, :version, :statements) do
     end
     policy.statements = statements.map do |raw_stmt|
       stmt = PolicyStatement.new
+      stmt.sid = raw_stmt['Sid']
       stmt.effect = raw_stmt['Effect']
       stmt.actions = Array(raw_stmt['Action'])
+      stmt.not_actions = Array(raw_stmt['NotAction'])
       stmt.resources = Array(raw_stmt['Resource'])
+      stmt.not_resources = Array(raw_stmt['NotResource'])
       stmt.conditions = []
       if raw_stmt.key?('Condition')
         raw_stmt['Condition'].each do |test, raw_cond|
@@ -132,13 +150,23 @@ PolicyDocument = Struct.new(:name, :version, :statements) do
           end
         end
       end
+      stmt.principals = []
+      if raw_stmt.key?('Principal')
+        stmt.principals = json_principals_to_array(raw_stmt['Principal'])
+      end
+      stmt.not_principals = []
+      if raw_stmt.key?('NotPrincipal')
+        stmt.not_principals = json_principals_to_array(raw_stmt['NotPrincipal'])
+      end
+
       stmt
     end
     policy
   end
 end
-PolicyStatement = Struct.new(:effect, :actions, :resources, :conditions)
+PolicyStatement = Struct.new(:sid, :effect, :actions, :resources, :conditions, :principals, :not_actions, :not_resources, :not_principals)
 PolicyCondition = Struct.new(:test, :variable, :values)
+PolicyPrincipal = Struct.new(:identifiers, :type)
 
 Group = Struct.new(:name, :path, :policies, :attached_managed_policies) do
   def initialize

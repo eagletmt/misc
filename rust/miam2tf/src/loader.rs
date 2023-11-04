@@ -13,6 +13,13 @@ fn to_rust_policy_document(policy: &crate::mruby::Value) -> crate::PolicyDocumen
     let version = policy.read_attribute("version").to_string_opt();
     let mut statements = Vec::new();
     for statement in policy.read_attribute("statements").iter() {
+        let sid_value = statement.read_attribute("sid");
+        let sid = if sid_value.is_nil() {
+            None
+        } else {
+            Some(sid_value.to_string())
+        };
+
         let effect = statement.read_attribute("effect").to_string();
         let mut actions = Vec::new();
         for action in statement.read_attribute("actions").iter() {
@@ -21,6 +28,14 @@ fn to_rust_policy_document(policy: &crate::mruby::Value) -> crate::PolicyDocumen
         let mut resources = Vec::new();
         for resource in statement.read_attribute("resources").iter() {
             resources.push(resource.to_string());
+        }
+        let mut not_actions = Vec::new();
+        for action in statement.read_attribute("not_actions").iter() {
+            not_actions.push(action.to_string());
+        }
+        let mut not_resources = Vec::new();
+        for resource in statement.read_attribute("not_resources").iter() {
+            not_resources.push(resource.to_string());
         }
         let mut conditions = Vec::new();
         for condition in statement.read_attribute("conditions").iter() {
@@ -36,11 +51,35 @@ fn to_rust_policy_document(policy: &crate::mruby::Value) -> crate::PolicyDocumen
                 values,
             });
         }
+        let mut principals = Vec::new();
+        for principal in statement.read_attribute("principals").iter() {
+            let typ = principal.read_attribute("type").to_string();
+            let mut identifiers = Vec::new();
+            for identifier in principal.read_attribute("identifiers").iter() {
+                identifiers.push(identifier.to_string());
+            }
+            principals.push(crate::PolicyPrincipal { typ, identifiers });
+        }
+        let mut not_principals = Vec::new();
+        for principal in statement.read_attribute("not_principals").iter() {
+            let typ = principal.read_attribute("type").to_string();
+            let mut identifiers = Vec::new();
+            for identifier in principal.read_attribute("identifiers").iter() {
+                identifiers.push(identifier.to_string());
+            }
+            not_principals.push(crate::PolicyPrincipal { typ, identifiers });
+        }
         statements.push(crate::PolicyStatement {
+            sid,
             effect,
             actions,
             resources,
             conditions,
+            principals,
+
+            not_actions,
+            not_resources,
+            not_principals,
         });
     }
     crate::PolicyDocument {

@@ -30,10 +30,17 @@ pub struct PolicyDocument {
 
 #[derive(Debug)]
 pub struct PolicyStatement {
+    pub sid: Option<String>,
     pub effect: String,
     pub actions: Vec<String>,
     pub resources: Vec<String>,
     pub conditions: Vec<PolicyCondition>,
+
+    pub principals: Vec<PolicyPrincipal>,
+
+    pub not_actions: Vec<String>,
+    pub not_resources: Vec<String>,
+    pub not_principals: Vec<PolicyPrincipal>,
 }
 
 #[derive(Debug)]
@@ -41,6 +48,12 @@ pub struct PolicyCondition {
     pub test: String,
     pub variable: String,
     pub values: Vec<String>,
+}
+
+#[derive(Debug)]
+pub struct PolicyPrincipal {
+    pub typ: String,
+    pub identifiers: Vec<String>,
 }
 
 #[derive(Debug)]
