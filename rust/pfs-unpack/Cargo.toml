@@ -8,6 +8,6 @@ edition = "2021"
 [dependencies]
 anyhow.workspace = true
 byteorder = "1"
-ring = "0.16"
+ring = "0.17"
 tracing-subscriber.workspace = true
 tracing.workspace = true
