@@ -11,6 +11,7 @@ members = [
   "./envwarden",
   "./errno",
   "./gh-contrib",
+  "./git-pkgbuild-commit",
   "./github-api-v4-sample",
   "./go-bridge-sample",
   "./graphql-sample/sample-client",
