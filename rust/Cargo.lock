@@ -68,7 +68,7 @@ name = "ambiwidth"
 version = "0.1.0"
 dependencies = [
  "flate2",
- "regex",
+ "regex-lite",
  "reqwest",
  "tokio",
 ]

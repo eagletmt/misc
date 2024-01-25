@@ -8,6 +8,6 @@ edition = "2021"
 
 [dependencies]
 flate2 = "1"
-regex = "1"
+regex-lite = "0.1"
 reqwest.workspace = true
 tokio.workspace = true

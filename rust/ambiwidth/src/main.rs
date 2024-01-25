@@ -53,8 +53,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .error_for_status()?;
     let body = resp.text().await?;
 
-    let single_re = regex::Regex::new(r"\A([0-9A-F]+);A")?;
-    let multi_re = regex::Regex::new(r"\A([0-9A-F]+)\.\.([0-9A-F]+);A")?;
+    let single_re = regex_lite::Regex::new(r"\A([0-9A-F]+);A")?;
+    let multi_re = regex_lite::Regex::new(r"\A([0-9A-F]+)\.\.([0-9A-F]+);A")?;
 
     let mut ranges = Vec::new();
     let mut cr = CharRange { start: 0, end: 0 };
