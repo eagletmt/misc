@@ -12,7 +12,7 @@ struct Opt {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let opt = Opt::parse();
 
-    let shared_config = aws_config::load_from_env().await;
+    let shared_config = aws_config::load_defaults(aws_config::BehaviorVersion::v2023_11_09()).await;
     let s3_client = aws_sdk_s3::Client::new(&shared_config);
 
     let mut continuation_token = None;
@@ -29,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         if let Some(contents) = resp.contents {
             for content in contents {
-                size += content.size;
+                size += content.size.expect("content size is none");
             }
         }
 

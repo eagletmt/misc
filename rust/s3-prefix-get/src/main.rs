@@ -16,7 +16,7 @@ struct Opt {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let opt = Opt::parse();
 
-    let shared_config = aws_config::load_from_env().await;
+    let shared_config = aws_config::load_defaults(aws_config::BehaviorVersion::v2023_11_09()).await;
     let s3_client = aws_sdk_s3::Client::new(&shared_config);
 
     let mut continuation_token = None;
@@ -62,12 +62,12 @@ async fn download(
         .key(&key)
         .send()
         .await?;
-    let mut reader = tokio_util::io::StreamReader::new(resp.body);
     if let Some(parent) = path.parent() {
         tokio::fs::create_dir_all(parent).await?;
     }
     let file = tokio::fs::File::create(&path).await?;
     let mut writer = tokio::io::BufWriter::new(file);
+    let mut reader = resp.body.into_async_read();
     tokio::io::copy(&mut reader, &mut writer).await?;
     writer.shutdown().await?;
     println!("s3://{}/{} -> {}", bucket, key, path.display());

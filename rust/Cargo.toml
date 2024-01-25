@@ -31,9 +31,9 @@ members = [
 
 [workspace.dependencies]
 anyhow = { version = "1", features = ["backtrace"] }
-aws-config = "0.56"
-aws-sdk-s3 = "0.30"
-aws-sdk-sts = "0.30"
+aws-config = "1"
+aws-sdk-s3 = "1"
+aws-sdk-sts = "1"
 clap = { version = "4", features = ["derive", "env"] }
 libc = "0.2"
 prost = "0.11"

@@ -17,7 +17,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .as_secs()
     );
 
-    let shared_config = aws_config::load_from_env().await;
+    let shared_config = aws_config::load_defaults(aws_config::BehaviorVersion::v2023_11_09()).await;
     let sts_client = aws_sdk_sts::Client::new(&shared_config);
     let resp = sts_client
         .assume_role()
@@ -28,11 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let creds = resp.credentials.unwrap();
     println!(
         "AWS_ACCESS_KEY_ID={}\nAWS_SECRET_ACCESS_KEY={}\nAWS_SESSION_TOKEN={}",
-        creds.access_key_id.expect("access_key_id is missing"),
-        creds
-            .secret_access_key
-            .expect("secret_access_key is missing"),
-        creds.session_token.expect("session_token is missing"),
+        creds.access_key_id, creds.secret_access_key, creds.session_token,
     );
 
     Ok(())

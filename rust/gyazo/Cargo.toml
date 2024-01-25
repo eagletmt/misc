@@ -8,5 +8,5 @@ edition = "2021"
 aws-config.workspace = true
 aws-sdk-s3.workspace = true
 futures.workspace = true
-md-5 = "0.10"
+sha2 = "0.10"
 tokio.workspace = true

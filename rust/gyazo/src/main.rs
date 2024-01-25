@@ -4,7 +4,10 @@ const REGION: &str = "ap-northeast-1";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let shared_config = aws_config::from_env().region(REGION).load().await;
+    let shared_config = aws_config::defaults(aws_config::BehaviorVersion::v2023_11_09())
+        .region(REGION)
+        .load()
+        .await;
     let s3 = aws_sdk_s3::Client::new(&shared_config);
 
     for arg in std::env::args().skip(1) {
@@ -17,9 +20,9 @@ async fn upload(
     s3_client: &aws_sdk_s3::Client,
     path: &std::path::Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    use md5::Digest as _;
+    use sha2::Digest as _;
     let image = tokio::fs::read(path).await?;
-    let mut hasher = md5::Md5::new();
+    let mut hasher = sha2::Sha256::new();
     hasher.update(&image);
     let digest = format!("{:x}", hasher.finalize());
 
