@@ -10,8 +10,7 @@ anyhow.workspace = true
 clap.workspace = true
 handlebars = "5"
 octocrab = "0.33"
-# https://github.com/raphlinus/pulldown-cmark/pull/672 is needed to parse Markdown of https://github.com/corretto/corretto-11/releases/tag/11.0.20.9.1 .
-pulldown-cmark = { git = "https://github.com/raphlinus/pulldown-cmark", rev = "b30808bc85ca26d2eec4f6a4b6a9c2536af1d06b", default-features = false }
+pulldown-cmark = { version = "0.10", default-features = false }
 serde.workspace = true
 tendril = "0.4"
 tokio.workspace = true

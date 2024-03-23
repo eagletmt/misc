@@ -98,7 +98,7 @@ struct Element<'a> {
     children: Vec<Node<'a>>,
 }
 
-fn skip_until_tag<'a, F>(parser: &mut pulldown_cmark::Parser<'a, '_>, f: F) -> anyhow::Result<bool>
+fn skip_until_tag<'a, F>(parser: &mut pulldown_cmark::Parser<'a>, f: F) -> anyhow::Result<bool>
 where
     F: Fn(pulldown_cmark::Tag<'a>) -> bool,
 {
@@ -240,7 +240,7 @@ fn textify(nodes: Vec<Node>) -> tendril::StrTendril {
     ret
 }
 
-fn build_nodes<'a>(parser: &mut pulldown_cmark::Parser<'a, '_>) -> Vec<Node<'a>> {
+fn build_nodes<'a>(parser: &mut pulldown_cmark::Parser<'a>) -> Vec<Node<'a>> {
     let mut nodes = Vec::new();
     while let Some(event) = parser.next() {
         match event {

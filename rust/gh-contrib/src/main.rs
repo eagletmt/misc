@@ -47,7 +47,7 @@ async fn main() -> Result<(), anyhow::Error> {
         )
         .build()?;
 
-    let min_to = chrono::Utc::now() - chrono::Duration::days(365 * 11);
+    let min_to = chrono::Utc::now() - chrono::Duration::try_days(365 * 11).unwrap();
     while to.map(|t| t > min_to).unwrap_or(true) {
         let resp: graphql_client::Response<query_contrib::ResponseData> = client
             .post("https://api.github.com/graphql")
