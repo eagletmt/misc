@@ -7,6 +7,6 @@ edition = "2021"
 [dependencies]
 chrono.workspace = true
 clap.workspace = true
-rustls = "0.23"
+rustls = { version = "0.23", default-features = false, features = ["std"] }
 rustls-native-certs = "0.7"
 x509-parser = "0.16"
