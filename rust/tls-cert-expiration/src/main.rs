@@ -15,13 +15,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let opt = Opt::parse();
 
     let mut tcp_stream = std::net::TcpStream::connect((opt.host.as_str(), opt.port))?;
-    let dns_name = rustls::ServerName::try_from(opt.host.as_str())?;
+    let dns_name = rustls::pki_types::ServerName::try_from(opt.host.as_str())?.to_owned();
     let mut root_certs = rustls::RootCertStore::empty();
     for cert in rustls_native_certs::load_native_certs()? {
-        root_certs.add(&rustls::Certificate(cert.0))?;
+        root_certs.add(cert)?;
     }
     let config = rustls::ClientConfig::builder()
-        .with_safe_defaults()
         .with_root_certificates(root_certs)
         .with_no_client_auth();
     let mut client = rustls::ClientConnection::new(std::sync::Arc::new(config), dns_name)?;
