@@ -9,7 +9,7 @@ edition = "2021"
 anyhow.workspace = true
 clap.workspace = true
 handlebars = "5"
-octocrab = "0.33"
+octocrab = "0.34"
 pulldown-cmark = { version = "0.10", default-features = false }
 serde.workspace = true
 tendril = "0.4"

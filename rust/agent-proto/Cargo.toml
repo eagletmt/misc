@@ -12,7 +12,7 @@ tonic-build.workspace = true
 [dependencies]
 anyhow.workspace = true
 libc.workspace = true
-nix = { version = "0.27", features = ["fs", "process"] }
+nix = { version = "0.28", features = ["fs", "process"] }
 prost.workspace = true
 tempfile.workspace = true
 tokio.workspace = true

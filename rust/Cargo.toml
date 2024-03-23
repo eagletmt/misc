@@ -37,7 +37,7 @@ aws-sdk-sts = "1"
 clap = { version = "4", features = ["derive", "env"] }
 libc = "0.2"
 prost = "0.11"
-reqwest = { version = "0.11", default-features = false, features = ["gzip", "rustls-tls", "stream", "trust-dns", "json"] }
+reqwest = { version = "0.12", default-features = false, features = ["gzip", "rustls-tls", "stream", "trust-dns", "json"] }
 tempfile = "3"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal", "time", "process", "tracing"] }
 tonic = "0.9"
@@ -51,5 +51,5 @@ bindgen = "0.66"
 anstream = "0.3"
 anstyle = "1"
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
-graphql_client = { version = "0.13", features = ["reqwest-rustls"] }
+graphql_client = "0.13"
 futures = "0.3"

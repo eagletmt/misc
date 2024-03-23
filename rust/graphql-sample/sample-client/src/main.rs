@@ -1,3 +1,4 @@
+use graphql_client::GraphQLQuery as _;
 use wasm_bindgen::JsCast as _;
 use wasm_bindgen::UnwrapThrowExt as _;
 use yew::prelude::*;
@@ -44,12 +45,20 @@ impl Component for Model {
                 ctx.link().send_future(async move {
                     let variables = get_user::Variables { id };
                     let client = reqwest::Client::new();
-                    let result = graphql_client::reqwest::post_graphql::<GetUser, _>(
-                        &client,
-                        "http://localhost:3000/graphql",
-                        variables,
-                    )
-                    .await;
+                    let body = GetUser::build_query(variables);
+                    let result: Result<
+                        graphql_client::Response<
+                            <GetUser as graphql_client::GraphQLQuery>::ResponseData,
+                        >,
+                        _,
+                    > = client
+                        .post("http://localhost:3000/graphql")
+                        .json(&body)
+                        .send()
+                        .await
+                        .unwrap()
+                        .json()
+                        .await;
                     match result {
                         Ok(resp) => {
                             if let Some(name) = resp
