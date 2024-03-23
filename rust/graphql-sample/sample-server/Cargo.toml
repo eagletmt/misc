@@ -11,7 +11,7 @@ axum = "0.7"
 juniper = { version = "0.16", default-features = false }
 juniper_axum = "0.1"
 listenfd = "1"
-sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres"] }
+sqlx = { version = "0.7", default-features = false, features = ["runtime-tokio-rustls", "macros", "postgres"] }
 tokio.workspace = true
 tower.workspace = true
 tower-http = { version = "0.5", features = ["trace"] }
