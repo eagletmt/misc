@@ -9,16 +9,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nth(1)
         .unwrap_or_else(|| "google.com".to_owned());
     let tcp_stream = tokio::net::TcpStream::connect((host.clone(), 443)).await?;
-    let mut root_store = tokio_rustls::rustls::RootCertStore::empty();
-    root_store.add_server_trust_anchors(webpki_roots::TLS_SERVER_ROOTS.0.iter().map(|ta| {
-        tokio_rustls::rustls::OwnedTrustAnchor::from_subject_spki_name_constraints(
-            ta.subject,
-            ta.spki,
-            ta.name_constraints,
-        )
-    }));
+    let root_store = tokio_rustls::rustls::RootCertStore::from_iter(
+        webpki_roots::TLS_SERVER_ROOTS.iter().cloned(),
+    );
     let mut tls_config = tokio_rustls::rustls::ClientConfig::builder()
-        .with_safe_defaults()
         .with_root_certificates(root_store)
         .with_no_client_auth();
     tls_config.alpn_protocols.push(b"h2".to_vec());
@@ -26,7 +20,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let connector = tokio_rustls::TlsConnector::from(std::sync::Arc::new(tls_config));
     let tls_stream = connector
         .connect(
-            tokio_rustls::rustls::ServerName::try_from(host.as_str())?,
+            tokio_rustls::rustls::pki_types::ServerName::try_from(host.clone())?,
             tcp_stream,
         )
         .await?;

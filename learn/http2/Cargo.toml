@@ -10,5 +10,5 @@ edition = "2021"
 bytes = "1"
 hpack_codec = "0.1"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "io-std"] }
-tokio-rustls = "0.24"
-webpki-roots = "0.23"
+tokio-rustls = "0.26"
+webpki-roots = "0.26"
