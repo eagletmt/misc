@@ -23,11 +23,13 @@ impl Query {
     }
 }
 
+type ScalarValue = juniper::DefaultScalarValue;
 type Schema = juniper::RootNode<
     'static,
     Query,
     juniper::EmptyMutation<Context>,
     juniper::EmptySubscription<Context>,
+    ScalarValue,
 >;
 
 #[tokio::main]
@@ -56,21 +58,26 @@ async fn main() -> Result<(), anyhow::Error> {
     let app = axum::Router::new()
         .route(
             "/graphiql",
-            axum::routing::get(|| juniper_hyper::graphiql("/graphql", None)),
+            axum::routing::get(juniper_axum::graphiql("/graphql", None)),
         )
-        .route(
-            "/graphql",
-            axum::routing::post(move |req| {
-                juniper_hyper::graphql(schema.clone(), context.clone(), req)
-            }),
-        )
-        .layer(tower::ServiceBuilder::new().layer(tower_http::trace::TraceLayer::new_for_http()));
+        .route("/graphql", axum::routing::post(graphql_handler))
+        .layer(tower::ServiceBuilder::new().layer(tower_http::trace::TraceLayer::new_for_http()))
+        .layer(axum::Extension(context))
+        .layer(axum::Extension(schema));
 
-    let server = if let Some(l) = listenfd::ListenFd::from_env().take_tcp_listener(0)? {
-        axum::Server::from_tcp(l)?
+    let listener = if let Some(l) = listenfd::ListenFd::from_env().take_tcp_listener(0)? {
+        tokio::net::TcpListener::from_std(l)?
     } else {
-        axum::Server::bind(&"127.0.0.1:3000".parse()?)
+        tokio::net::TcpListener::bind("127.0.0.1:3000").await?
     };
-    server.serve(app.into_make_service()).await?;
+    axum::serve(listener, app).await?;
     Ok(())
+}
+
+async fn graphql_handler(
+    schema: axum::Extension<std::sync::Arc<Schema>>,
+    context: axum::Extension<std::sync::Arc<Context>>,
+    req: juniper_axum::extract::JuniperRequest<ScalarValue>,
+) -> juniper_axum::response::JuniperResponse<ScalarValue> {
+    juniper_axum::response::JuniperResponse(req.0.execute(&schema, &context).await)
 }
