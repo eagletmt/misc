@@ -257,7 +257,7 @@ fn build_nodes<'a>(parser: &mut pulldown_cmark::Parser<'a>) -> Vec<Node<'a>> {
             pulldown_cmark::Event::Code(s) => {
                 nodes.push(Node::Code(s));
             }
-            pulldown_cmark::Event::Html(s) => {
+            pulldown_cmark::Event::InlineHtml(s) => {
                 nodes.push(Node::Html(s));
             }
             e => {
