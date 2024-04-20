@@ -40,7 +40,7 @@ impl MRuby {
 
         unsafe {
             let ctx = crate::mruby_c::mrbc_context_new(self.mrb);
-            crate::mruby_c::mrbc_filename(self.mrb, ctx, path_cstr.as_ptr() as *const i8);
+            crate::mruby_c::mrbc_filename(self.mrb, ctx, path_cstr.as_ptr());
             crate::mruby_c::mrb_load_nstring_cxt(
                 self.mrb,
                 code.as_ptr() as *const i8,
