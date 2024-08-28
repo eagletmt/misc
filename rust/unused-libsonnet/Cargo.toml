@@ -1,0 +1,13 @@
+[package]
+name = "unused-libsonnet"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+jrsonnet-evaluator.workspace = true
+jrsonnet-gcmodule.workspace = true
+jrsonnet-parser.workspace = true
+jrsonnet-stdlib.workspace = true
+walkdir = "2"

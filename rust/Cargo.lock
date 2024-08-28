@@ -89,6 +89,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "annotate-snippets"
+version = "0.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ccaf7e9dfbb6ab22c82e473cd1a8a7bd313c19a5b7e40970f3d89ef5a5c9e81e"
+dependencies = [
+ "unicode-width",
+ "yansi-term",
+]
+
+[[package]]
 name = "anstream"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -990,7 +1000,7 @@ dependencies = [
  "anstream 0.6.13",
  "anstyle",
  "clap_lex",
- "strsim",
+ "strsim 0.11.1",
 ]
 
 [[package]]
@@ -1242,6 +1252,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b42b6fa04a440b495c8b04d0e71b707c585f83cb9cb28cf8cd0d976c315e31b4"
 dependencies = [
  "powerfmt",
+]
+
+[[package]]
+name = "derivative"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fcc3dd5e9e9c0b295d6e1e4d811fb6f157d5ffd784b8d202fc62eac8035a770b"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -3075,6 +3096,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
 
 [[package]]
+name = "jrsonnet-evaluator"
+version = "0.5.0-pre95"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0951f206ee982ef3c61ed49c2779b3649858d2b7c6748943e4c7f36f6df55f9c"
+dependencies = [
+ "annotate-snippets",
+ "derivative",
+ "hashbrown 0.13.2",
+ "jrsonnet-gcmodule",
+ "jrsonnet-interner",
+ "jrsonnet-macros",
+ "jrsonnet-parser",
+ "jrsonnet-types",
+ "pathdiff",
+ "rustc-hash",
+ "serde",
+ "static_assertions",
+ "strsim 0.10.0",
+ "thiserror",
+]
+
+[[package]]
 name = "jrsonnet-gcmodule"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3104,6 +3147,7 @@ dependencies = [
  "hashbrown 0.13.2",
  "jrsonnet-gcmodule",
  "rustc-hash",
+ "structdump",
 ]
 
 [[package]]
@@ -3112,6 +3156,17 @@ version = "0.1.0"
 dependencies = [
  "indoc",
  "jrsonnet-parser",
+]
+
+[[package]]
+name = "jrsonnet-macros"
+version = "0.5.0-pre95"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e4b4d289fa4d4992f0a791de2e9fbdae7100005d28fced76fc49a2d70b5737f5"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -3124,6 +3179,38 @@ dependencies = [
  "jrsonnet-interner",
  "peg",
  "static_assertions",
+ "structdump",
+]
+
+[[package]]
+name = "jrsonnet-stdlib"
+version = "0.5.0-pre95"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "99d7f31ed348ea5f7dfb379ddc65fe1773d82cab7698a8dbc4d2d72013795eba"
+dependencies = [
+ "base64 0.21.7",
+ "jrsonnet-evaluator",
+ "jrsonnet-gcmodule",
+ "jrsonnet-macros",
+ "jrsonnet-parser",
+ "md5",
+ "serde",
+ "serde_json",
+ "serde_yaml_with_quirks",
+ "sha1",
+ "sha2",
+ "sha3",
+ "structdump",
+]
+
+[[package]]
+name = "jrsonnet-types"
+version = "0.5.0-pre95"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "68522259250172a8aa3714e2f99466641cc450b5c758fbdaa05265f86c1e0d97"
+dependencies = [
+ "jrsonnet-gcmodule",
+ "peg",
 ]
 
 [[package]]
@@ -3213,6 +3300,15 @@ checksum = "e6208a839bd4ca2131924a238311d088d6604ea267c0917903392bad7b70a92c"
 dependencies = [
  "futures",
  "juniper",
+]
+
+[[package]]
+name = "keccak"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ecc2af9a1119c51f12a14607e783cb977bde58bc069ff0c3da1095e635d70654"
+dependencies = [
+ "cpufeatures",
 ]
 
 [[package]]
@@ -3330,6 +3426,12 @@ dependencies = [
  "cfg-if",
  "digest",
 ]
+
+[[package]]
+name = "md5"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "490cc448043f947bae3cbee9c203358d62dbee0db12107a74be5c30ccfd09771"
 
 [[package]]
 name = "memchr"
@@ -3651,6 +3753,12 @@ name = "paste"
 version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "de3145af08024dea9fa9914f381a17b8fc6034dfb00f3a84013f7ff43f29ed4c"
+
+[[package]]
+name = "pathdiff"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8835116a5c179084a830efb3adc117ab007512b535bc1a21c991d3b32a6b44dd"
 
 [[package]]
 name = "peeking_take_while"
@@ -4595,6 +4703,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_yaml_with_quirks"
+version = "0.8.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47c5983eba86eae2d0058c35fb1065ccffb23af7f8965871069269088098321a"
+dependencies = [
+ "indexmap 1.9.3",
+ "ryu",
+ "serde",
+ "yaml-rust",
+]
+
+[[package]]
 name = "sha1"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4620,6 +4740,16 @@ dependencies = [
  "cfg-if",
  "cpufeatures",
  "digest",
+]
+
+[[package]]
+name = "sha3"
+version = "0.10.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75872d278a8f37ef87fa0ddbda7802605cb18344497949862c0d4dcb291eba60"
+dependencies = [
+ "digest",
+ "keccak",
 ]
 
 [[package]]
@@ -4899,9 +5029,37 @@ dependencies = [
 
 [[package]]
 name = "strsim"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
+
+[[package]]
+name = "strsim"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
+
+[[package]]
+name = "structdump"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0570327507bf281d8a6e6b0d4c082b12cb6bcee27efce755aa5efacd44076c1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "structdump-derive",
+]
+
+[[package]]
+name = "structdump-derive"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29cc0b59cfa11f1bceda09a9a7e37e6a6c3138575fd24ade8aa9af6d09aedf28"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
 
 [[package]]
 name = "subtle"
@@ -5471,6 +5629,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d4c87d22b6e3f4a18d4d40ef354e97c90fcb14dd91d7dc0aa9d8a1172ebf7202"
 
 [[package]]
+name = "unicode-width"
+version = "0.1.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0336d538f7abc86d282a4189614dfaa90810dfc2c6f6427eaf88e16311dd225d"
+
+[[package]]
 name = "unicode_categories"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5490,6 +5654,19 @@ name = "untrusted"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
+
+[[package]]
+name = "unused-libsonnet"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "jrsonnet-evaluator",
+ "jrsonnet-gcmodule",
+ "jrsonnet-parser",
+ "jrsonnet-stdlib",
+ "walkdir",
+]
 
 [[package]]
 name = "url"
@@ -5955,6 +6132,24 @@ name = "xmlparser"
 version = "0.13.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "66fee0b777b0f5ac1c69bb06d361268faafa61cd4682ae064a171c16c433e9e4"
+
+[[package]]
+name = "yaml-rust"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56c1936c4cc7a1c9ab21a1ebb602eb942ba868cbd44a99cb7cdc5892335e1c85"
+dependencies = [
+ "linked-hash-map",
+]
+
+[[package]]
+name = "yansi-term"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe5c30ade05e61656247b2e334a031dfd0cc466fadef865bdcdea8d537951bf1"
+dependencies = [
+ "winapi",
+]
 
 [[package]]
 name = "yew"

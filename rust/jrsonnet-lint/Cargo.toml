@@ -6,8 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# https://github.com/CertainLach/jrsonnet/pull/63 is required
-jrsonnet-parser = "0.5.0-pre95"
+jrsonnet-parser.workspace = true
 
 [dev-dependencies]
 indoc = "2"
