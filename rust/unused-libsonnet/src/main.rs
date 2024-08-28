@@ -3,7 +3,7 @@ struct Args {
     dir: std::path::PathBuf,
 }
 
-type ImportedSet = std::sync::Arc<std::sync::Mutex<std::collections::HashSet<std::path::PathBuf>>>;
+type ImportedSet = std::cell::RefCell<std::collections::HashSet<std::path::PathBuf>>;
 
 fn main() -> anyhow::Result<()> {
     use clap::Parser as _;
@@ -35,7 +35,7 @@ fn main() -> anyhow::Result<()> {
         }
     }
 
-    let imported = imported.lock().expect("failed to take imported mutex");
+    let imported = imported.into_inner();
     let mut c = 0;
     for relative_path in found_libsonnet {
         let absolute_path = cwd.join(&relative_path);
@@ -73,13 +73,11 @@ fn create_state(imported: ImportedSet) -> jrsonnet_evaluator::State {
 
 struct ImportResolver {
     inner: jrsonnet_evaluator::FileImportResolver,
-    imported: std::sync::Arc<std::sync::Mutex<std::collections::HashSet<std::path::PathBuf>>>,
+    imported: ImportedSet,
 }
 
 impl ImportResolver {
-    fn new(
-        imported: std::sync::Arc<std::sync::Mutex<std::collections::HashSet<std::path::PathBuf>>>,
-    ) -> Self {
+    fn new(imported: ImportedSet) -> Self {
         Self {
             inner: jrsonnet_evaluator::FileImportResolver::default(),
             imported,
@@ -95,11 +93,7 @@ impl jrsonnet_evaluator::ImportResolver for ImportResolver {
         resolved: &jrsonnet_parser::SourcePath,
     ) -> jrsonnet_evaluator::Result<Vec<u8>> {
         if let Some(path) = resolved.path() {
-            let mut imported = self
-                .imported
-                .lock()
-                .expect("failed to take self.imported mutex");
-            imported.insert(path.to_path_buf());
+            self.imported.borrow_mut().insert(path.to_path_buf());
         }
         self.inner.load_file_contents(resolved)
     }
