@@ -17,7 +17,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .as_secs()
     );
 
-    let shared_config = aws_config::load_defaults(aws_config::BehaviorVersion::v2023_11_09()).await;
+    let shared_config = aws_config::load_defaults(aws_config::BehaviorVersion::v2025_01_17()).await;
     let sts_client = aws_sdk_sts::Client::new(&shared_config);
     let resp = sts_client
         .assume_role()

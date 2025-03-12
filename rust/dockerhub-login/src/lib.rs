@@ -24,7 +24,7 @@ where
 {
     use futures_util::SinkExt as _;
     ws.send(tokio_tungstenite::tungstenite::Message::Text(
-        serde_json::to_string(&req)?,
+        serde_json::to_string(&req)?.into(),
     ))
     .await?;
 

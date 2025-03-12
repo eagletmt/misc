@@ -24,7 +24,7 @@ where
 }
 
 std::thread_local! {
-    static RNG: std::cell::RefCell<rand_xorshift::XorShiftRng> = std::cell::RefCell::new(rand_xorshift::XorShiftRng::from_seed(rand::thread_rng().gen()));
+    static RNG: std::cell::RefCell<rand_xorshift::XorShiftRng> = std::cell::RefCell::new(rand_xorshift::XorShiftRng::from_seed(rand::rng().random()));
 }
 
 fn random_scene<R>(rng: &mut R) -> HittableList
@@ -42,9 +42,9 @@ where
 
     for a in -11..11 {
         for b in -11..11 {
-            let choose_mat = rng.gen_range(0.0..1.0);
-            let x = a as f64 + 0.9 * rng.gen_range(0.0..1.0);
-            let z = b as f64 + 0.9 * rng.gen_range(0.0..1.0);
+            let choose_mat = rng.random_range(0.0..1.0);
+            let x = a as f64 + 0.9 * rng.random_range(0.0..1.0);
+            let z = b as f64 + 0.9 * rng.random_range(0.0..1.0);
             let center = Point3::new(x, 0.2, z);
 
             if (center - Point3::new(4.0, 0.2, 0.0)).length() > 0.9 {
@@ -56,7 +56,7 @@ where
                 } else if choose_mat < 0.95 {
                     // metal
                     let albedo = Color::random(rng, 0.5, 1.0);
-                    let fuzz = rng.gen_range(0.0..0.5);
+                    let fuzz = rng.random_range(0.0..0.5);
                     let sphere_material = Arc::new(Metal::new(albedo, fuzz, &RNG));
                     world.add(Arc::new(Sphere::new(center, 0.2, sphere_material)));
                 } else {
@@ -101,7 +101,7 @@ fn main() {
     let max_depth = 50;
 
     // World
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let world = std::sync::Arc::new(random_scene(&mut rng));
 
     // Camera
@@ -123,7 +123,7 @@ fn main() {
     let image = dashmap::DashMap::with_capacity((image_height * image_width) as usize);
     ji.into_par_iter().for_each_init(
         || {
-            let mut rng = rand::thread_rng();
+            let mut rng = rand::rng();
             let cam = Camera::new(
                 lookfrom,
                 lookat,
@@ -132,15 +132,15 @@ fn main() {
                 aspect_ratio,
                 aperture,
                 dist_to_focus,
-                rand_xorshift::XorShiftRng::from_seed(rng.gen()),
+                rand_xorshift::XorShiftRng::from_seed(rng.random()),
             );
             (rng, cam)
         },
         |(rng, cam), (j, i)| {
             let mut pixel_color = Color::default();
             for _ in 0..samples_per_pixel {
-                let u = (i as f64 + rng.gen_range(0.0..1.0)) / (image_width - 1) as f64;
-                let v = (j as f64 + rng.gen_range(0.0..1.0)) / (image_height - 1) as f64;
+                let u = (i as f64 + rng.random_range(0.0..1.0)) / (image_width - 1) as f64;
+                let v = (j as f64 + rng.random_range(0.0..1.0)) / (image_height - 1) as f64;
                 let r = cam.get_ray(u, v);
                 pixel_color += ray_color(&r, world.as_ref(), max_depth);
             }

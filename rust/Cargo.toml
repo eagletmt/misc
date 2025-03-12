@@ -31,30 +31,30 @@ members = [
 ]
 
 [workspace.dependencies]
-anstream = "0.3"
+anstream = "0.6"
 anstyle = "1"
 anyhow = { version = "1", features = ["backtrace"] }
 aws-config = "1"
-aws-sdk-s3 = "1"
-aws-sdk-sts = "1"
-bindgen = "0.66"
+aws-sdk-s3 = { version = "1", default-features = false, features = ["default-https-client", "rt-tokio"] }
+aws-sdk-sts = { version = "1", default-features = false, features = ["default-https-client"] }
+bindgen = "0.71"
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
 clap = { version = "4", features = ["derive", "env"] }
 futures = "0.3"
-graphql_client = "0.13"
+graphql_client = "0.14"
 jrsonnet-evaluator = "0.5.0-pre95"
 jrsonnet-gcmodule = "0.3"
 jrsonnet-parser = "0.5.0-pre95"
 jrsonnet-stdlib = "0.5.0-pre95"
 libc = "0.2"
-prost = "0.11"
+prost = "0.13"
 reqwest = { version = "0.12", default-features = false, features = ["gzip", "rustls-tls", "stream", "trust-dns", "json"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tempfile = "3"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal", "time", "process", "tracing"] }
-tonic = "0.9"
-tonic-build = "0.9"
-tower = "0.4"
+tonic = "0.12"
+tonic-build = "0.12"
+tower = "0.5"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

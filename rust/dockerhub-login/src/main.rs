@@ -182,7 +182,8 @@ async fn obtain_auth_header(username: &str, password: &str) -> anyhow::Result<St
             session_id: None,
             method: "Browser.close",
             params: (),
-        })?,
+        })?
+        .into(),
     ))
     .await?;
 

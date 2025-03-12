@@ -4,7 +4,7 @@ const REGION: &str = "ap-northeast-1";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let shared_config = aws_config::defaults(aws_config::BehaviorVersion::v2023_11_09())
+    let shared_config = aws_config::defaults(aws_config::BehaviorVersion::v2025_01_17())
         .region(REGION)
         .load()
         .await;

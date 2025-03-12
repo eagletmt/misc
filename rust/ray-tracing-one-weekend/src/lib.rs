@@ -20,9 +20,9 @@ impl Vec3 {
     {
         Self {
             e: [
-                rng.gen_range(min..max),
-                rng.gen_range(min..max),
-                rng.gen_range(min..max),
+                rng.random_range(min..max),
+                rng.random_range(min..max),
+                rng.random_range(min..max),
             ],
         }
     }
@@ -373,7 +373,11 @@ where
     R: rand::Rng,
 {
     loop {
-        let p = Vec3::new(rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0), 0.0);
+        let p = Vec3::new(
+            rng.random_range(-1.0..1.0),
+            rng.random_range(-1.0..1.0),
+            0.0,
+        );
         if p.length_squared() < 1.0 {
             return p;
         }
@@ -505,7 +509,7 @@ where
             || reflectance(cos_theta, refraction_ratio)
                 > self
                     .tls_rng
-                    .with(|rng| rng.borrow_mut().gen_range(0.0..1.0))
+                    .with(|rng| rng.borrow_mut().random_range(0.0..1.0))
         {
             reflect(&unit_direction, &rec.normal)
         } else {

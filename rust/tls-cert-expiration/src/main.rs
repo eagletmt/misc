@@ -17,7 +17,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut tcp_stream = std::net::TcpStream::connect((opt.host.as_str(), opt.port))?;
     let dns_name = rustls::pki_types::ServerName::try_from(opt.host.as_str())?.to_owned();
     let mut root_certs = rustls::RootCertStore::empty();
-    for cert in rustls_native_certs::load_native_certs()? {
+    for cert in rustls_native_certs::load_native_certs().expect("failed to load native certs") {
         root_certs.add(cert)?;
     }
     let config = rustls::ClientConfig::builder()
