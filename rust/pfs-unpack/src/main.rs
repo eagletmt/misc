@@ -10,10 +10,13 @@ use std::io::Seek as _;
 use std::io::Write as _;
 
 fn main() -> anyhow::Result<()> {
-    if std::env::var_os("RUST_LOG").is_none() {
-        std::env::set_var("RUST_LOG", "info");
-    }
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::builder()
+                .with_default_directive(tracing_subscriber::filter::LevelFilter::INFO.into())
+                .from_env_lossy(),
+        )
+        .init();
 
     for arg in std::env::args().skip(1) {
         unpack(&arg).with_context(|| format!("failed to unpack {}", arg))?;
