@@ -6,9 +6,9 @@ pub mod input;
 pub mod page;
 pub mod target;
 
-pub async fn send<'a, S, T, U>(
+pub async fn send<S, T, U>(
     ws: &mut S,
-    req: crate::cdp::Request<'a, T>,
+    req: crate::cdp::Request<'_, T>,
 ) -> anyhow::Result<crate::cdp::Response<U>>
 where
     S: futures_util::Sink<tokio_tungstenite::tungstenite::Message>

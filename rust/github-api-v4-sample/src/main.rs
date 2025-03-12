@@ -74,7 +74,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let installation_id = installations[0].id;
 
     let AppInstallationAccessToken { token } = client
-        .post(&format!(
+        .post(format!(
             "https://api.github.com/app/installations/{}/access_tokens",
             installation_id
         ))

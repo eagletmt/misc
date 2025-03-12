@@ -73,18 +73,18 @@ impl MRuby {
 
 unsafe fn add_missing_methods(mrb: *mut crate::mruby_c::mrb_state) {
     let dir_class =
-        crate::mruby_c::mrb_define_class(mrb, "Dir\0".as_ptr() as *const i8, (*mrb).object_class);
+        crate::mruby_c::mrb_define_class(mrb, c"Dir".as_ptr(), (*mrb).object_class);
     crate::mruby_c::mrb_define_class_method(
         mrb,
         dir_class,
-        "glob\0".as_ptr() as *const i8,
+        c"glob".as_ptr(),
         Some(mrb_dir_glob),
         mrb_args_req(1),
     );
     crate::mruby_c::mrb_define_singleton_method(
         mrb,
         (*mrb).top_self,
-        "require\0".as_ptr() as *const i8,
+        c"require".as_ptr(),
         Some(mrb_require),
         mrb_args_req(1),
     );
@@ -133,7 +133,7 @@ extern "C" fn mrb_dir_glob(
     let mut block = mrb_nil_value();
     let pat = unsafe {
         let mut val = mrb_nil_value();
-        crate::mruby_c::mrb_get_args(mrb, "S&\0".as_ptr() as *const i8, &mut val, &mut block);
+        crate::mruby_c::mrb_get_args(mrb, c"S&".as_ptr(), &mut val, &mut block);
         to_rust_string(mrb, val)
     };
 
@@ -188,7 +188,7 @@ extern "C" fn mrb_require(
 ) -> crate::mruby_c::mrb_value {
     let path = unsafe {
         let mut val = mrb_nil_value();
-        crate::mruby_c::mrb_get_args(mrb, "S\0".as_ptr() as *const i8, &mut val);
+        crate::mruby_c::mrb_get_args(mrb, c"S".as_ptr(), &mut val);
         to_rust_string(mrb, val)
     };
     let mut file = unwrap_or_raise(mrb, std::fs::File::open(&path));
