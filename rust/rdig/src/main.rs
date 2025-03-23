@@ -1,9 +1,12 @@
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut resolver = trust_dns_resolver::AsyncResolver::tokio(
-        trust_dns_resolver::config::ResolverConfig::cloudflare_https(),
-        trust_dns_resolver::config::ResolverOpts::default(),
-    );
+    tracing_subscriber::fmt::init();
+
+    let mut resolver = hickory_resolver::Resolver::builder_with_config(
+        hickory_resolver::config::ResolverConfig::cloudflare_https(),
+        hickory_resolver::name_server::TokioConnectionProvider::default(),
+    )
+    .build();
 
     for arg in std::env::args().skip(1) {
         resolve_name(&mut resolver, arg).await?;
@@ -11,10 +14,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn resolve_name(
-    resolver: &mut trust_dns_resolver::TokioAsyncResolver,
+async fn resolve_name<P>(
+    resolver: &mut hickory_resolver::Resolver<P>,
     name: String,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), Box<dyn std::error::Error>>
+where
+    P: hickory_resolver::name_server::ConnectionProvider,
+{
     const TYPE_STYLE: anstyle::Style =
         anstyle::Style::new().fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Yellow)));
     const NAME_STYLE: anstyle::Style =
@@ -46,7 +52,7 @@ async fn resolve_name(
         if let Ok(resp) = resolver
             .lookup(
                 name.as_str(),
-                trust_dns_resolver::proto::rr::RecordType::CNAME,
+                hickory_resolver::proto::rr::RecordType::CNAME,
             )
             .await
         {
@@ -117,12 +123,14 @@ async fn resolve_name(
     Ok(())
 }
 
-async fn resolve_mx(
-    resolver: trust_dns_resolver::TokioAsyncResolver,
+async fn resolve_mx<P>(
+    resolver: hickory_resolver::Resolver<P>,
     name: String,
     type_style: anstyle::Style,
     name_style: anstyle::Style,
-) {
+) where
+    P: hickory_resolver::name_server::ConnectionProvider,
+{
     if let Ok(resp) = resolver.mx_lookup(name.as_str()).await {
         let mut records: Vec<_> = resp.into_iter().collect();
         records.sort_unstable_by(|x, y| {
@@ -145,11 +153,13 @@ async fn resolve_mx(
     }
 }
 
-async fn resolve_txt(
-    resolver: trust_dns_resolver::TokioAsyncResolver,
+async fn resolve_txt<P>(
+    resolver: hickory_resolver::Resolver<P>,
     name: String,
     type_style: anstyle::Style,
-) {
+) where
+    P: hickory_resolver::name_server::ConnectionProvider,
+{
     if let Ok(resp) = resolver.txt_lookup(name.as_str()).await {
         for txt in resp {
             for data in txt.txt_data() {
@@ -165,22 +175,21 @@ async fn resolve_txt(
     }
 }
 
-async fn resolve_caa(
-    resolver: trust_dns_resolver::TokioAsyncResolver,
+async fn resolve_caa<P>(
+    resolver: hickory_resolver::Resolver<P>,
     name: String,
     type_style: anstyle::Style,
     name_style: anstyle::Style,
-) {
+) where
+    P: hickory_resolver::name_server::ConnectionProvider,
+{
     if let Ok(resp) = resolver
-        .lookup(
-            name.as_str(),
-            trust_dns_resolver::proto::rr::RecordType::CAA,
-        )
+        .lookup(name.as_str(), hickory_resolver::proto::rr::RecordType::CAA)
         .await
     {
         for rdata in resp {
             let caa = rdata.as_caa().unwrap();
-            use trust_dns_resolver::proto::rr::rdata::caa::{Property, Value};
+            use hickory_resolver::proto::rr::rdata::caa::{Property, Value};
             match (caa.tag(), caa.value()) {
                 (Property::Issue, Value::Issuer(Some(domain), _)) => {
                     anstream::println!(
@@ -234,12 +243,14 @@ async fn resolve_caa(
     }
 }
 
-async fn resolve_ptr(
-    resolver: trust_dns_resolver::TokioAsyncResolver,
+async fn resolve_ptr<P>(
+    resolver: hickory_resolver::Resolver<P>,
     addr: std::net::IpAddr,
     type_style: anstyle::Style,
     name_style: anstyle::Style,
-) {
+) where
+    P: hickory_resolver::name_server::ConnectionProvider,
+{
     if let Ok(resp) = resolver.reverse_lookup(addr).await {
         for ptr in resp {
             {

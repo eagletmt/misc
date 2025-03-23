@@ -7,5 +7,6 @@ edition = "2024"
 [dependencies]
 anstream.workspace = true
 anstyle.workspace = true
+hickory-resolver = { version = "0.25", default-features = false, features = ["tokio", "https-aws-lc-rs", "rustls-platform-verifier"] }
 tokio.workspace = true
-trust-dns-resolver = { version = "0.23", default-features = false, features = ["tokio-runtime", "dns-over-https-rustls"] }
+tracing-subscriber.workspace = true
