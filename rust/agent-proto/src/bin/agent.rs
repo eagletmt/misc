@@ -51,15 +51,14 @@ fn main() -> Result<(), anyhow::Error> {
     std::env::set_current_dir("/")?;
     let child_pid = std::process::id();
     {
-        use std::os::unix::io::AsRawFd as _;
         let stdin = std::fs::File::open("/dev/null")?;
-        nix::unistd::dup2(stdin.as_raw_fd(), std::io::stdin().as_raw_fd())?;
+        nix::unistd::dup2_stdin(stdin)?;
         let stdout =
             std::fs::File::create(socket_dir.path().join(format!("stdout.{}.log", child_pid)))?;
         let stderr =
             std::fs::File::create(socket_dir.path().join(format!("stderr.{}.log", child_pid)))?;
-        nix::unistd::dup2(stdout.as_raw_fd(), std::io::stdout().as_raw_fd())?;
-        nix::unistd::dup2(stderr.as_raw_fd(), std::io::stderr().as_raw_fd())?;
+        nix::unistd::dup2_stdout(stdout)?;
+        nix::unistd::dup2_stderr(stderr)?;
     }
 
     let rt = tokio::runtime::Runtime::new()?;
