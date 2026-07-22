@@ -66,14 +66,14 @@ async fn main() -> anyhow::Result<()> {
             tracing::info!("Skip draft release: {}", release.html_url);
         } else if release.prerelease {
             tracing::info!("Skip pre-release: {}", release.html_url);
-        } else if let Some(body) = release.body {
-            if let Some(tarballs) = extract_tarballs(&body)? {
-                break Pkgbuild {
-                    args,
-                    pkgver: release.tag_name,
-                    tarballs,
-                };
-            }
+        } else if let Some(body) = release.body
+            && let Some(tarballs) = extract_tarballs(&body)?
+        {
+            break Pkgbuild {
+                args,
+                pkgver: release.tag_name,
+                tarballs,
+            };
         }
 
         page = octocrab
@@ -171,9 +171,12 @@ fn extract_tarballs(body: &str) -> anyhow::Result<Option<Tarballs>> {
                 .next()
                 .ok_or_else(|| anyhow::anyhow!("Platform cell is not found"))?,
         );
-        let _type = cells
+        let type_ = textify(cells
             .next()
-            .ok_or_else(|| anyhow::anyhow!("Type cell is not found"))?;
+            .ok_or_else(|| anyhow::anyhow!("Type cell is not found"))?);
+        if &*type_ != "JDK" {
+            continue;
+        }
         let download = cells
             .next()
             .ok_or_else(|| anyhow::anyhow!("Download cell is not found"))?;
